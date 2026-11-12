@@ -192,6 +192,22 @@ def drop_ivory_coast_false_hits(conn, flag="ivory_coast_v1"):
     return n
 
 
+def drop_non_seizure_stories(conn, flag="story_gate_v1"):
+    """One-time: retire earlier reports whose headline is about something other than a new seizure (an artefact
+    returned, a court outcome, drugs destroyed, an overdose, a documentary ...). Returns the number retired."""
+    if get_meta(conn, flag):
+        return 0
+    from . import lexicon as L
+    ids = [i for i, t in conn.execute("SELECT id, title FROM articles WHERE relevant=1 AND title IS NOT NULL")
+           if L.NOT_A_SEIZURE.search(L.norm(t)) or (L.COURT_OUTCOME.search(L.norm(t)) and not L.SEIZURE.search(L.norm(t)))]
+    for k in range(0, len(ids), 500):
+        part = ids[k:k + 500]
+        conn.execute("UPDATE articles SET relevant=0 WHERE id IN (%s)" % ",".join("?" * len(part)), part)
+    set_meta(conn, flag, 1)
+    conn.commit()
+    return len(ids)
+
+
 def _tokens(title):
     """Words of 4+ letters (3+ in Arabic, Cyrillic, Devanagari); Chinese text is compared by pairs of characters."""
     t = slug(title)

@@ -26,3 +26,10 @@ def test_shared_vessel_merges_reports_up_to_two_weeks_apart():
     df = pd.DataFrame([dict(base, event_id=1, published=pd.Timestamp("2026-10-01")),
                        dict(base, event_id=2, published=pd.Timestamp("2026-10-09"))])
     assert cases.merge_cases(df)["event_id"].nunique() == 1
+
+
+def test_stories_that_are_not_new_seizures_are_rejected():
+    assert not extract.extract("World: France returns colonial-era 'talking drum' to Ivory Coast", "").get("relevant")
+    assert not extract.extract("Mizoram destroys seized drugs worth Rs 11.82 crore", "").get("relevant")
+    assert not extract.extract("Skagway fentanyl supplier gets 25 years following two overdose deaths", "").get("relevant")
+    assert extract.extract("Customs seizes 200 kg of cocaine at port", "").get("relevant")

@@ -79,6 +79,20 @@ EXCLUDE = rx(r"\bstock\s+market\b", r"dispensar", r"legali[sz]", r"netflix", r"\
              r"\btoy\s+guns?\b", r"\bnerf\b", r"gun\s+(?:show|range|store|shop)\b",
              r"second\s+amendment", r"gun\s+rights")
 
+# Headlines that are about something other than a new seizure: a return of an artefact, a court outcome for an
+# older case, a destruction ceremony, an overdose death, a study, an allegation or a policy debate. The story may
+# mention a drug or ivory, but it is not a seizure to count (the original seizure is counted once, when it happened).
+NOT_A_SEIZURE = rx(
+    r"\b(?:returns?|returned|repatriat\w*|handed\s+back|restitution)\b.{0,60}\b(?:artefacts?|artifacts?|drum|museum|relics?|heritage|statue|skull|remains|antiquities)\b",
+    r"\b(?:museum|exhibition|exhibit|auction|documentary|podcast|opinion|editorial|op-ed|obituary)\b",
+    r"\b(?:incinerat\w*|destroy(?:s|ed|ing)?|destruction\s+of)\b.{0,40}\b(?:narcotics|drugs|tonnes?|tons?)\b",
+    r"\boverdose\b", r"\bstudy\s+(?:finds|shows)\b", r"\bresearch\b", r"\bbenefits\s+of\b",
+    r"\bhow\s+to\b", r"\bexplained\b", r"\bwhat\s+(?:is|are|to\s+know)\b", r"\bpolicy\b")
+# A court outcome (sentenced, jailed ...) is a later report of an older seizure. It only counts when the headline
+# itself also describes the seizure (found, seized, haul ...), so the same case is not counted twice.
+COURT_OUTCOME = rx(r"\b(?:sentenced|jailed|convicted|pleaded?\s+guilty|heading\s+to\s+(?:federal\s+)?prison|faces?\s+trial|"
+                   r"goes\s+on\s+trial|acquitted|found\s+guilty|gets?\s+\d+\s+years?)\b")
+
 # --------------------------------------------------------------------------
 # CONCEALMENT METHODS
 # --------------------------------------------------------------------------

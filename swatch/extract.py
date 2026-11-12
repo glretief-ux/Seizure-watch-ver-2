@@ -738,7 +738,9 @@ def extract(title, text="", source_country=None):
     t = (title_n + ". " + text_n).strip()
     primary, drugs, category = _classify(title_n, text_n)
     rec = {"relevant": 0}
-    if not primary or not L.SEIZURE.search(t) or L.EXCLUDE.search(title_n):
+    if not primary or not L.SEIZURE.search(t) or L.EXCLUDE.search(title_n) or L.NOT_A_SEIZURE.search(title_n):
+        return rec
+    if L.COURT_OUTCOME.search(title_n) and not L.SEIZURE.search(title_n):
         return rec
     unspecified = UNSPECIFIED_LABEL.get(category)
     kg, units, unit_type = _quantities(t, primary, len(title_n) + 2, _english(t), category=category,

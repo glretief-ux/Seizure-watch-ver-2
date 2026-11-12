@@ -305,6 +305,9 @@ def main():
         log(f"      insider re-check skipped ({type(exc).__name__}: {exc})")
     db.backfill_drug_types(conn, extract._nsa_type)
     db.recategorise_tobacco(conn)
+    n_ns = db.drop_non_seizure_stories(conn)
+    if n_ns:
+        log(f"      retired {n_ns} earlier report(s) that are not new seizures (court outcomes, drugs destroyed, returned artefacts ...)")
     n_iv = db.drop_ivory_coast_false_hits(conn)
     if n_iv:
         log(f"      removed {n_iv} report(s) about Ivory Coast that were misread as elephant ivory")
