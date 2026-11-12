@@ -305,6 +305,9 @@ def main():
         log(f"      insider re-check skipped ({type(exc).__name__}: {exc})")
     db.backfill_drug_types(conn, extract._nsa_type)
     db.recategorise_tobacco(conn)
+    n_iv = db.drop_ivory_coast_false_hits(conn)
+    if n_iv:
+        log(f"      removed {n_iv} report(s) about Ivory Coast that were misread as elephant ivory")
     n_rel = db.relocate_by_headline(conn, extract.locate, lambda t: extract._title_anchor(extract.L.norm(t)))
     if n_rel:
         log(f"      corrected the country of {n_rel} earlier report(s) whose headline names where the seizure happened")

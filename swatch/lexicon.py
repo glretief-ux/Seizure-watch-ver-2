@@ -266,7 +266,7 @@ GENERIC_ARMS = rx(r"illegal\s+(?:weapons?|arms)", r"illicit\s+(?:weapons?|arms)"
 # "ivory" also mean sports teams, loan sharks, a politician's surname or the
 # country Ivory Coast / Cote d'Ivoire, so they only count in a wildlife context.
 IVORY_PATTERNS = {
-    "Elephant ivory": rx(r"\bivory\b(?!\s+coast)(?!\s+tower)", r"elephant\s+tusks?", r"\btusks\b",
+    "Elephant ivory": rx(r"\bivory\b(?!\s+coast)(?!\s+c(?:o(?:a(?:st?)?)?)?\W*$)(?!\s+tower)", r"elephant\s+tusks?", r"\btusks\b",
                          r"\bmarfil\b", r"(?<!d')(?<!d )\bivoire\b", r"\bmarfim\b", r"mammoth\s+ivory",
                          r"\bnga\s+voi\b"),                       # Vietnamese (ngà voi = elephant tusk / ivory)
 }

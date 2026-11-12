@@ -179,6 +179,19 @@ def relocate_by_headline(conn, locate_fn, anchor_fn, flag="relocate_v4"):
     return fixed
 
 
+def drop_ivory_coast_false_hits(conn, flag="ivory_coast_v1"):
+    """One-time: headlines that say 'Ivory Coast' (often cut off as 'Ivory C') were once read as elephant ivory.
+    Marks such reports as not seizure reports unless the headline has another wildlife word."""
+    if get_meta(conn, flag):
+        return 0
+    n = conn.execute("UPDATE articles SET relevant=0 WHERE relevant=1 AND primary_drug LIKE '%ivory%' "
+                     "AND lower(title) GLOB '*ivory c*' AND lower(title) NOT GLOB '*tusk*' AND lower(title) NOT GLOB '*elephant*' "
+                     "AND lower(title) NOT GLOB '*wildlife*'").rowcount
+    set_meta(conn, flag, 1)
+    conn.commit()
+    return n
+
+
 def _tokens(title):
     """Words of 4+ letters (3+ in Arabic, Cyrillic, Devanagari); Chinese text is compared by pairs of characters."""
     t = slug(title)
