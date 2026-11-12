@@ -2087,6 +2087,7 @@ PLACE.update({
     "Volgograd": [48.71, 44.51], "Voronezh": [51.67, 39.18], "Yekaterinburg": [56.84, 60.61],
 })
 
+PLACE.update({"Sumatra": [3.30, 99.10], "Java": [-7.15, 110.14], "Kalimantan": [-0.50, 113.90], "Sulawesi": [-1.43, 121.45]})
 # Places added in places_extra.py (approximate centres, for the map markers)
 PLACE.update({
     "Abbotsford": [49.05, -122.30], "Aceh": [4.70, 96.75], "Adamawa": [9.33, 12.40], "Akwa Ibom": [5.00, 7.85], "Albany": [42.65, -73.76],

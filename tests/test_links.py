@@ -29,10 +29,15 @@ def test_clean_vessel_drops_non_names():
 
 
 def test_same_vessel_in_two_events_is_a_strong_lead():
-    ev = _ev([{"vessel": "Mashaallah"}, {"vessel": "Mashaallah", "date": ASOF - pd.Timedelta(days=3)}, {"vessel": "Other One"}])
+    ev = _ev([{"vessel": "Mashaallah"}, {"vessel": "Mashaallah", "date": ASOF - pd.Timedelta(days=20)}, {"vessel": "Other One"}])
     out = links.repeat_links(ev, ASOF, CFG)
     assert [r["name"] for r in out] == ["Mashaallah"] and out[0]["strength"] == "High" and out[0]["n"] == 2
     assert links.link_alerts(out)[0]["severity"] == "High"
+
+
+def test_one_vessel_reported_over_several_days_is_one_seizure_not_a_repeat():
+    ev = _ev([{"vessel": "Global 168", "date": ASOF - pd.Timedelta(days=i)} for i in (0, 2, 5, 9)])
+    assert links.repeat_links(ev, ASOF, CFG) == []
 
 
 def test_big_carrier_is_table_only_and_old_links_drop_out():
@@ -44,7 +49,8 @@ def test_big_carrier_is_table_only_and_old_links_drop_out():
 
 
 def test_containers_always_found_together_are_merged_as_one_case():
-    ev = _ev([{"container_numbers": "AAAU1111111; BBBU2222222"}, {"container_numbers": "AAAU1111111; BBBU2222222"}])
+    ev = _ev([{"container_numbers": "AAAU1111111; BBBU2222222"},
+              {"container_numbers": "AAAU1111111; BBBU2222222", "date": ASOF - pd.Timedelta(days=20)}])
     out = links.repeat_links(ev, ASOF, CFG)
     assert len(out) == 1 and out[0]["strength"] == "Low" and "one case" in out[0]["note"]
 

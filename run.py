@@ -305,6 +305,9 @@ def main():
         log(f"      insider re-check skipped ({type(exc).__name__}: {exc})")
     db.backfill_drug_types(conn, extract._nsa_type)
     db.recategorise_tobacco(conn)
+    n_rel = db.relocate_by_headline(conn, extract.locate, lambda t: extract._title_anchor(extract.L.norm(t)))
+    if n_rel:
+        log(f"      corrected the country of {n_rel} earlier report(s) whose headline names where the seizure happened")
     n_loc = db.backfill_locations(conn, extract.locate)
     if n_loc:
         log(f"      found a country for {n_loc} earlier report(s) that had none")

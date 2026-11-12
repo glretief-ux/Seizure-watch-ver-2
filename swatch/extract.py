@@ -457,7 +457,48 @@ def _mentions(t):
     return out
 
 
-def _route(t, source_country):
+_TITLE_ACTION = (r"(?:seizes?|seized|busts?|intercepts?|confiscates?|finds?|discovers?|uncovers?|arrests?|nabs?|foils?|"
+                 r"captures?|impounds?|stops?|dismantles?|raids?)")
+
+
+_DEMONYM = {"thai": "Thailand", "indonesian": "Indonesia", "malaysian": "Malaysia", "vietnamese": "Vietnam", "philippine": "Philippines",
+            "filipino": "Philippines", "cambodian": "Cambodia", "chinese": "China", "indian": "India", "pakistani": "Pakistan",
+            "nigerian": "Nigeria", "ghanaian": "Ghana", "kenyan": "Kenya", "tanzanian": "Tanzania", "brazilian": "Brazil",
+            "colombian": "Colombia", "ecuadorian": "Ecuador", "peruvian": "Peru", "mexican": "Mexico", "spanish": "Spain",
+            "dutch": "Netherlands", "belgian": "Belgium", "german": "Germany", "french": "France", "italian": "Italy",
+            "greek": "Greece", "turkish": "Turkey", "egyptian": "Egypt", "saudi": "Saudi Arabia", "kuwaiti": "Kuwait",
+            "iraqi": "Iraq", "jordanian": "Jordan", "lebanese": "Lebanon", "syrian": "Syria", "australian": "Australia",
+            "japanese": "Japan", "korean": "South Korea", "singaporean": "Singapore", "polish": "Poland", "romanian": "Romania"}
+_DEMONYM_RX = re.compile(r"\b(" + "|".join(_DEMONYM) + r")\s+(?:customs|police|authorities|officers|coast guard|navy|border|"
+                         r"anti[- ]narcotics?|narcotics|drug enforcement|forces?|agents?|officials)\b")
+
+
+def _title_anchor(title_n):
+    """The country (and place) a headline itself says the seizure happened in: 'Indonesia seizes ...' or
+    '... drug bust in Sumatra'. A country named only as origin, destination or transit never counts.
+    Returns (country, place or None) or None. The headline outranks place names found later in the article text,
+    which are often the owner's home, a suspect's hometown or an unrelated city."""
+    ments = _mentions(title_n)
+    if not ments:
+        m = _DEMONYM_RX.search(title_n)
+        if m:
+            return _DEMONYM[m.group(1)], None
+    for k, (s, e, kind, disp, ctry) in enumerate(ments):
+        pre = title_n[max(0, s - 60): s]
+        if L.ORIGIN_CUE.search(pre) or L.TRANSIT_CUE.search(pre) or L.DEST_CUE.search(pre) or \
+                L.POST_ORIGIN.match(title_n[e: e + 14]) or L.POST_DEST.match(title_n[e: e + 14]):
+            continue
+        later_other = any(m[4] != ctry for m in ments[k + 1:])
+        near = title_n[max(0, s - 14): s]
+        if re.search(r"\b(?:in|at|off|near|across|within|inside)\s+(?:the\s+)?$", near) and not later_other:
+            return ctry, (disp if kind == "place" else None)
+        if re.match(r"(?:\s+[\w'.-]+){0,2}\s+" + _TITLE_ACTION + r"\b", title_n[e: e + 45]) and \
+                not re.search(r"(?:,|\band|&|\bwith)\s*$", near):      # 'Iraq, Kuwait seize' is a joint operation
+            return ctry, (disp if kind == "place" else None)
+    return None
+
+
+def _route(t, source_country, title_n=None):
     ments = _mentions(t)
     roles = []
     for i, (s, e, kind, disp, ctry) in enumerate(ments):
@@ -507,6 +548,10 @@ def _route(t, source_country):
             seizure_country, conf = cue, "medium"       # an agency, county or currency in the text
         elif source_country:
             seizure_country = source_country
+    anchor = _title_anchor(title_n) if title_n else None
+    if anchor and anchor[0] != seizure_country:
+        seizure_country, conf = anchor[0], "high"
+        seizure_place = anchor[1] or next((m[3] for m in unl if m[2] == "place" and m[4] == anchor[0]), None)
     origin = o[4] if o else None
     dest = d[4] if d else None
     res = {
@@ -599,7 +644,7 @@ _VESSEL_RX = [
     re.compile(r"\b(?i:navire|porte-conteneurs|bateau|voilier|chalutier|cargo)\s+(?i:nomm[e\u00e9]|baptis[e\u00e9])?\s*[\"\u201c]?(" + _NAME + r")"),
     re.compile(r"\b(?i:navio|embarca[c\u00e7][a\u00e3]o|porta-contentores)\s+(?i:chamado|denominado)?\s*[\"\u201c]?(" + _NAME + r")"),
 ]
-_NOT_A_NAME = set("""the a an this that its his her their which was were is are carrying bound arrived from in at on of with had has after when
+_NOT_A_NAME = set("""brought shingle the a an this that its his her their which was were is are carrying bound arrived from in at on of with had has after when
 while loaded registered flagged owned operated sailing docked anchored berthed seized intercepted discovered being began by for to and or
 but as he she they it we who during near off had carrying el la los las un una que con en de del fue era llevaba procedente le les des du
 une qui avec dans etait o os as um uma com no na do da foi police customs officers coast guard navy port authorities""".split())
@@ -682,7 +727,7 @@ def _indicators(t):
 
 def locate(title, source_country=None):
     """Only the place facts of a headline (country, place, route), for re-reading reports stored without a country."""
-    return _route(L.norm(title), source_country)
+    return _route(L.norm(title), source_country, L.norm(title))
 
 
 def extract(title, text="", source_country=None):
@@ -700,7 +745,7 @@ def extract(title, text="", source_country=None):
                                         skip_precursor_filter=(category not in ("Drug", "Tobacco")))
     in_container = 1 if L.CONTAINER.search(NON_SHIP_CONTAINER.sub(" ", t)) else 0
     cats, detail = _concealment(t, in_container)
-    route = _route(t, source_country)
+    route = _route(t, source_country, title_n)
     drug_type = _nsa_type(title_n, text_n) if primary == "NSA" else None
     arrests = _arrests(t)
     # A headline that names the item and says it was seized is a real report even without a weight

@@ -153,6 +153,32 @@ def backfill_locations(conn, locate_fn, days=7):
     return gained
 
 
+def relocate_by_headline(conn, locate_fn, anchor_fn, flag="relocate_v4"):
+    """One-time pass for data collected before the headline outranked body-text places: when the headline itself
+    says where the seizure happened ('Indonesia seizes ...'), correct the stored country/place/route.
+    Returns the number of reports corrected."""
+    if get_meta(conn, flag):
+        return 0
+    rows = conn.execute("SELECT id, title, COALESCE(source_country, ''), lang, seizure_country FROM articles "
+                        "WHERE relevant=1 AND title IS NOT NULL").fetchall()
+    fixed = 0
+    for i, title, sc, lang, cur in rows:
+        try:
+            rec = locate_fn(title, sc or LANG_COUNTRY.get(lang))
+        except Exception:
+            continue
+        new = rec.get("seizure_country")
+        anchor = anchor_fn(title)
+        if not new or new == cur or not anchor or anchor[0] != new:
+            continue
+        sets = {c: rec.get(c) for c in LOCATION_COLS if rec.get(c) is not None}
+        conn.execute("UPDATE articles SET " + ", ".join(f"{c}=?" for c in sets) + " WHERE id=?", [*sets.values(), i])
+        fixed += 1
+    set_meta(conn, flag, 1)
+    conn.commit()
+    return fixed
+
+
 def _tokens(title):
     """Words of 4+ letters (3+ in Arabic, Cyrillic, Devanagari); Chinese text is compared by pairs of characters."""
     t = slug(title)

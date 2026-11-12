@@ -20,7 +20,7 @@ from . import extract
 KNOWN_LINES = set(extract.SHIPPING_LINES)
 
 # Words that look like a name to the extractor but are not a vessel.
-_NOT_VESSELS = {"show", "shed", "system", "matthew", "spanish", "usa", "uk", "us", "eu", "customs", "police", "navy",
+_NOT_VESSELS = {"brought", "shingle", "examination compound", "all", "ship", "jul", "aug", "sep", "oct", "pvt", "ros", "ltz", "show", "shed", "system", "matthew", "spanish", "usa", "uk", "us", "eu", "customs", "police", "navy",
                 "coast", "guard", "ship", "vessel", "boat", "cargo", "container", "port", "sea", "ocean", "bulk"}
 _LATIN_WORD = re.compile(r"[A-Za-z][A-Za-z \-/&']{2,38}")
 # Cover goods too common to say anything on their own (they are matched together with the corridor).
@@ -84,6 +84,18 @@ def _entity_rows(ev):
 STRENGTH = {"Vessel": "High", "Container number": "High", "Cover cargo on corridor": "Medium", "Loading place": "Low", "Shipping line": "Low"}
 
 
+def _incidents(g, idx, window=14):
+    """Keep one event per incident: events of the same vessel/container less than `window` days apart are the
+    same seizure reported in several stages (ship stopped, drugs counted, arrests)."""
+    d = idx.loc[g["event_id"].tolist(), "date"].sort_values()
+    keep, last = [], None
+    for eid, dt in d.items():
+        if last is None or (dt - last).days > window:
+            keep.append(eid)
+        last = dt
+    return g[g["event_id"].isin(keep)]
+
+
 def repeat_links(ev, asof, cfg):
     L = (cfg.get("links") or {})
     mins = {"Vessel": 2, "Container number": 2, "Shipping line": 4, "Loading place": 4, "Cover cargo on corridor": 3}
@@ -98,6 +110,8 @@ def repeat_links(ev, asof, cfg):
     cut = asof - pd.Timedelta(days=recent_days - 1)
     out = []
     for (t, name), g in rows.groupby(["type", "name"]):
+        if t in ("Vessel", "Container number", "Cover cargo on corridor"):
+            g = _incidents(g, idx)         # reports of one incident (within 14 days) are one seizure, not a repeat
         if len(g) < mins.get(t, 2):
             continue
         sub = idx.loc[g["event_id"].tolist()]

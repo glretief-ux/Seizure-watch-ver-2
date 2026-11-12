@@ -33,11 +33,21 @@ def _sim(a, b):
     return _jaccard(a["_tok"], b["_tok"])
 
 
+def _shared_id(a, b):
+    for k in ("vessel", "container_numbers"):
+        if a.get(k) and b.get(k) and set(map(str.strip, re.split(r"[;,]", str(a[k])))) & set(map(str.strip, re.split(r"[;,]", str(b[k])))):
+            return True
+    return False
+
+
 def _same_case(a, b):
     if a["primary_drug"] != b["primary_drug"]:
         return False
-    if abs((a["published"] - b["published"]).days) > 3:
+    gap = abs((a["published"] - b["published"]).days)
+    if gap > 14:
         return False
+    if gap > 3:                       # a vessel or container found with the same drug is one seizure reported late
+        return _shared_id(a, b)
     amt = _amount(a, b)
     if amt is False:
         return False
@@ -86,7 +96,7 @@ def merge_cases(df):
         for r in rs:
             home = None
             for c in reversed(cases):
-                if (r["published"] - c[0]).days > 3:  # a case spans at most 3 days from its first report
+                if (r["published"] - c[0]).days > 14:  # a case spans at most 14 days (3 unless a vessel/container is shared)
                     break
                 if _same_case(c[1][0], r):          # compared with the case's first report only, so cases cannot drift
                     home = c

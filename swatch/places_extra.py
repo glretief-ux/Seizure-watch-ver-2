@@ -81,6 +81,8 @@ PLACES = [
     ("Dhaka", "Bangladesh", ["dhaka"]), ("Chattogram", "Bangladesh", ["chattogram", "chittagong", "cox's bazar", "teknaf"]), ("Colombo", "Sri Lanka", ["colombo"]), ("Kathmandu", "Nepal", ["kathmandu"]),
     # --- Southeast Asia, Australia, New Zealand
     ("Jakarta", "Indonesia", ["jakarta"]), ("Surabaya", "Indonesia", ["surabaya"]), ("Medan", "Indonesia", ["medan"]), ("Batam", "Indonesia", ["batam"]), ("Aceh", "Indonesia", ["aceh"]), ("Bali", "Indonesia", ["bali"]),
+    ("Sumatra", "Indonesia", ["sumatra", "sumatera", "north sumatra", "belawan", "tanjung balai", "tanjungbalai", "asahan", "lampung", "riau"]), ("Java", "Indonesia", ["west java", "east java", "central java"]),
+    ("Kalimantan", "Indonesia", ["kalimantan"]), ("Sulawesi", "Indonesia", ["sulawesi", "makassar"]),
     ("Bangkok", "Thailand", ["bangkok"]), ("Chiang Mai", "Thailand", ["chiang mai"]), ("Hanoi", "Vietnam", ["hanoi"]), ("Ho Chi Minh City", "Vietnam", ["ho chi minh", "saigon"]), ("Phnom Penh", "Cambodia", ["phnom penh"]),
     ("Sydney", "Australia", ["sydney"]), ("Melbourne", "Australia", ["melbourne"]), ("Brisbane", "Australia", ["brisbane"]), ("Perth", "Australia", ["perth"]), ("Adelaide", "Australia", ["adelaide"]),
     ("Queensland", "Australia", ["queensland"]), ("New South Wales", "Australia", ["new south wales", "nsw"]), ("Victoria (AU)", "Australia", ["victoria police"]), ("Auckland", "New Zealand", ["auckland"]),
