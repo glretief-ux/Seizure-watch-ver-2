@@ -91,9 +91,21 @@ jobs:
       - name: Save the database
         if: always() && hashFiles('data/seizure_watch.db') != ''
         run: |
+          set -e
           rm -rf out && mkdir out
           python - <<'PY'
-          import sqlite3, gzip, shutil
+          import sqlite3, gzip, shutil, os, sys
+          def rows(path):
+              c = sqlite3.connect(path)
+              try: return c.execute("select count(*) from articles").fetchone()[0]
+              finally: c.close()
+          new_rows = rows("data/seizure_watch.db")
+          if os.path.exists("state/seizure_watch.db.gz"):       # never replace the saved data with a smaller (empty/broken) database
+              with gzip.open("state/seizure_watch.db.gz", "rb") as g, open("/tmp/old.db", "wb") as f: shutil.copyfileobj(g, f)
+              if new_rows < rows("/tmp/old.db"):
+                  sys.exit("database has fewer articles than the saved one - not saving")
+          elif new_rows < 100:
+              sys.exit("database is nearly empty and nothing is saved yet - not saving")
           c = sqlite3.connect("data/seizure_watch.db"); c.execute("VACUUM"); c.close()
           with open("data/seizure_watch.db", "rb") as f, gzip.open("out/seizure_watch.db.gz", "wb", 9) as g:
               shutil.copyfileobj(f, g)
