@@ -1,0 +1,27 @@
+/* Seizure Watch - shared design tokens and top bar (used by every page) */
+:root{
+  --ink:#14202e; --mute:#5d6b7c; --line:#e2e8f0; --bg:#f4f6f9; --card:#fff;
+  --brand:#0b3a66; --brand-2:#1d6fb8; --tint:#eaf1f9;
+  --hi:#c62f2f; --med:#d98100; --lo:#2a8a57; --r:12px;
+  --shadow:0 1px 2px rgba(16,32,52,.05),0 4px 14px rgba(16,32,52,.05);
+  --font:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+.swbar{position:sticky;top:0;z-index:60;background:#fff;border-bottom:1px solid var(--line);font-family:var(--font)}
+.swbar-in{max-width:1320px;margin:0 auto;padding:8px 16px;display:flex;align-items:center;gap:18px}
+.swbrand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink);flex:0 0 auto}
+.swbrand img{height:34px;width:auto;display:block;border-radius:4px}
+.swbrand b{display:block;font-size:16px;letter-spacing:-.01em;line-height:1.1}
+.swbrand small{display:block;font-size:11px;color:var(--mute);line-height:1.2}
+.swpages{display:flex;gap:2px;flex:1 1 auto;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.swpages::-webkit-scrollbar{display:none}
+.swpages a{padding:7px 12px;border-radius:8px;color:var(--mute);text-decoration:none;font-size:13.5px;font-weight:600;white-space:nowrap}
+.swpages a:hover{background:var(--bg);color:var(--ink)}
+.swpages a.on{background:var(--tint);color:var(--brand)}
+.swdl{position:relative;flex:0 0 auto;font-size:13px}
+.swdl summary{list-style:none;cursor:pointer;padding:7px 12px;border:1px solid var(--line);border-radius:8px;font-weight:600;color:var(--brand);background:#fff}
+.swdl summary::-webkit-details-marker{display:none}
+.swdl div{position:absolute;right:0;top:calc(100% + 6px);background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);padding:6px;min-width:190px}
+.swdl a{display:block;padding:8px 10px;border-radius:6px;color:var(--ink);text-decoration:none}
+.swdl a:hover{background:var(--bg)}
+@media(max-width:720px){.swbrand small{display:none}.swbar-in{gap:10px;padding:8px 12px}}
+@media print{.swbar{display:none}}

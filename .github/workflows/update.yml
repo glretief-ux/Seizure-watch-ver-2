@@ -1,0 +1,121 @@
+name: Update Seizure Watch
+
+# One workflow: collect news -> analyse -> build the site -> publish to GitHub Pages.
+# On Mondays (or when asked) it also builds the weekly newsletter.
+# Generated files are never committed to main. The database lives on the `data` branch (one commit, overwritten
+# every run), so the repository stays small.
+
+on:
+  schedule:
+    - cron: "0 8 * * *"            # 08:00 UTC = 09:00 / 10:00 in Belgium
+  workflow_dispatch:
+    inputs:
+      days:
+        description: "Look-back days (use 30 for the very first run to back-fill history)"
+        default: "2"
+      newsletter:
+        description: "Also (re)build the weekly newsletter now"
+        type: boolean
+        default: false
+      send_bulletin:
+        description: "Also e-mail the weekly bulletin now (needs the e-mail secrets)"
+        type: boolean
+        default: false
+  push:
+    branches: [main]
+    paths: ["web/**", "scripts/**", "swatch/**", "config/**", ".github/workflows/update.yml"]
+
+permissions:
+  contents: write                  # save the database to the `data` branch
+  pages: write
+  id-token: write
+
+concurrency:
+  group: seizure-watch
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Restore the database (and the latest newsletter) from the data branch
+        uses: actions/checkout@v4
+        with:
+          ref: data
+          path: state
+        continue-on-error: true
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install
+        run: |
+          pip install -r requirements.txt
+          python -m spacy download en_core_web_sm
+          mkdir -p data site
+          if [ -f state/seizure_watch.db.gz ]; then gunzip -c state/seizure_watch.db.gz > data/seizure_watch.db; fi
+
+      - name: Collect, analyse and build the dashboard
+        id: run
+        run: |
+          set -o pipefail
+          # a push that only changes the site code rebuilds from stored data (no new searching)
+          if [ "${{ github.event_name }}" = "push" ]; then MODE="--reanalyse"; else MODE="--days ${{ github.event.inputs.days || '2' }}"; fi
+          python -X faulthandler -u run.py $MODE ${{ github.event.inputs.send_bulletin == 'true' && '--send-bulletin' || '' }} 2>&1 | tee run.log
+        env:
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          BULLETIN_TO: ${{ secrets.BULLETIN_TO }}
+          BULLETIN_FROM: ${{ secrets.BULLETIN_FROM }}
+
+      - name: Newsletter - keep the previous one, rebuild on Mondays or when asked
+        run: |
+          for f in newsletter.html newsletter.pdf; do [ -f state/$f ] && cp state/$f site/$f || true; done
+          DOW=$(TZ=Europe/Brussels date +%u)
+          if [ "${{ github.event.inputs.newsletter }}" = "true" ] || { [ "${{ github.event_name }}" = "schedule" ] && [ "$DOW" = "1" ]; }; then
+            pip install weasyprint
+            END=$(TZ=Europe/Brussels date -d "last sunday" +%F)
+            python scripts/build_newsletter.py "$END" || echo "newsletter failed (kept the previous one)"
+          fi
+
+      - name: Build the website
+        run: python scripts/build_site.py
+
+      - name: Save the database
+        if: always() && hashFiles('data/seizure_watch.db') != ''
+        run: |
+          rm -rf out && mkdir out
+          python - <<'PY'
+          import sqlite3, gzip, shutil
+          c = sqlite3.connect("data/seizure_watch.db"); c.execute("VACUUM"); c.close()
+          with open("data/seizure_watch.db", "rb") as f, gzip.open("out/seizure_watch.db.gz", "wb", 9) as g:
+              shutil.copyfileobj(f, g)
+          PY
+          for f in newsletter.html newsletter.pdf; do [ -f site/$f ] && cp site/$f out/ || true; done
+          tail -n 120 run.log > out/last_run.log || true
+          cd out
+          git init -q -b data
+          git config user.name "seizure-watch-bot"; git config user.email "actions@users.noreply.github.com"
+          git add -A && git commit -q -m "Data $(date -u +%FT%TZ)"
+          git push -q --force "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" data
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

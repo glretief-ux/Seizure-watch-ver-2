@@ -1,0 +1,1147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Seizure Watch - open-source drug seizure risk indicators</title>
+<script src="vendor/chart.min.js"></script>
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+<script src="vendor/leaflet/leaflet.js"></script>
+<link rel="stylesheet" href="shared/theme.css">
+<link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+<script src="shared/topbar.js" data-active="dashboard"></script>
+<div class="wrap">
+<div class="hero"><div><h1>Dashboard</h1><div class="sub" id="sub"></div><div class="sub" id="views" hidden></div></div>
+  <a class="small" href="https://glretief-ux.github.io/Precursor-Chemical-ID/" target="_blank" rel="noopener noreferrer">Precursor Chemical ID tool &#8599;</a></div>
+<div id="banners"></div>
+<div class="tabsbar"><nav class="maintabs" id="mainTabs" aria-label="Sections"><button data-view="overview" class="on">Overview</button><button data-view="leads">Leads</button><button data-view="analysis">Analysis</button><button data-view="events">Events</button><button data-view="library">News library</button><button data-view="method">Method &amp; coverage</button></nav></div>
+
+<div class="filters">
+  <select id="fCategory"><option value="">All categories</option></select>
+  <select id="fDrug"><option value="">All types</option></select>
+  <select id="fBand"><option value="">All risk bands</option><option>High</option><option>Medium</option><option>Low</option></select>
+  <select id="fDays"><option value="7">Last 7 days</option><option value="30">Last 30 days</option><option value="90" selected>Last 90 days</option><option value="9999">All time</option></select>
+  <select id="fMode"><option value="">All transport</option></select>
+  <div class="msel" id="fInfraWrap">
+    <button type="button" class="mselBtn" id="fInfraBtn">Infrastructure<span class="mselCount" id="fInfraCount" style="display:none"></span></button>
+    <div class="mselPanel" id="fInfraPanel" hidden>
+      <input type="search" id="fInfraSearch" placeholder="Search...">
+      <div class="mselActions"><button type="button" id="fInfraAllBtn">All</button><button type="button" id="fInfraClearBtn">Clear</button></div>
+      <div class="mselList" id="fInfraList"></div>
+    </div>
+  </div>
+  <input id="fQ" type="search" placeholder="Search e.g. Ghana to Hong Kong, cocaine Antwerp, food cargo...">
+</div>
+
+<section class="view on" id="v-overview">
+<div class="kpis" id="kpis"></div>
+
+<div class="card"><h2>Route map <span class="small" id="mapNote"></span></h2>
+  <div id="map"></div>
+  <div class="legend">
+    <span><b style="border:2px solid #555;background:#fff"></b>origin</span><span><b style="background:#c0392b"></b>seizure place (number = reports; tap to list them)</span><span><b style="border:2px dashed #c0392b;background:#fff"></b>approximate (no place named; outlet's country)</span><span><b style="background:#12355b;border:1px solid #fff"></b>destination</span>
+    <span>Arrows show direction. Lines join country centres or ports, so they show the reported route, not the actual path. Tap a line for the report. The map follows the filters and search above.</span>
+  </div>
+</div>
+
+<div class="card"><h2>Alerts <span class="small" id="alertNote"></span></h2><div id="alerts" class="alertbox"></div></div>
+
+<div class="grid2">
+  <div class="card"><h2>Seizure reports over time (by drug)</h2><div class="chartbox"><canvas id="cTime"></canvas></div></div>
+  <div class="card"><h2>How it was hidden</h2><div class="chartbox"><canvas id="cConc"></canvas></div></div>
+  <div class="card"><h2>Top corridors in view</h2><div class="chartbox"><canvas id="cCorr"></canvas></div></div>
+  <div class="card"><h2>Transport type</h2><div class="chartbox"><canvas id="cMode"></canvas></div></div>
+</div>
+
+</section>
+<section class="view" id="v-leads">
+<div class="card" id="linkCard"><h2>Repeat links <span class="small" id="linkNote"></span></h2>
+  <div class="small" style="line-height:1.45;margin-bottom:8px">The same vessel, container, loading place or cover cargo appearing in more than one separate seizure. These are leads to check, not proof of a link. A vessel or container number recurring is the strongest sign; a big shipping line or a busy port appears in many seizures by chance.</div>
+  <div class="tw" style="max-height:420px"><table id="linkT"></table></div></div>
+
+<div class="card" id="chainCard"><h2>Production chain watch <span class="small" id="chainNote"></span></h2>
+  <div class="small" style="line-height:1.45;margin-bottom:8px">Precursor chemical seizures and clandestine-laboratory reports, followed by synthetic-drug seizures in the same country. A match on place and timing is a possible link only. Precursor seizures are rarely reported in the news, so labs are included too.</div>
+  <div class="tw" style="max-height:380px"><table id="chainT"></table></div></div>
+
+<div class="card"><h2>My watchlist <span class="small" id="watchNote"></span></h2>
+  <div id="watchNew"></div>
+  <div class="wrow"><input id="wQ" type="search" placeholder="Watch for... e.g. Antwerp cocaine, Ecuador Belgium, food cargo, OR Tambo">
+    <select id="wBand"><option value="1">Any risk</option><option value="2">Medium and above</option><option value="3">High only</option></select>
+    <button id="wAdd" type="button">Add watch</button></div>
+  <div id="watchList"></div>
+  <div class="small" style="margin-top:10px">Watches are saved on this device only (not on the website). "New" means not shown on your previous visit. Tap a watch to see its events; highlighted rows in the table match a watch.</div>
+</div>
+
+<div class="grid2">
+  <div class="card"><h2>Corridors <span class="small">(all history, follows the filters above except the period; trend = last 30 days vs the 30 before)</span></h2><div class="tw" id="corr"></div></div>
+  <div class="card"><h2>Seizure hotspots <span class="small">(countries)</span></h2><div class="tw" id="hot"></div></div>
+</div>
+
+</section>
+<section class="view" id="v-analysis">
+<div class="card"><h2>Concealment x drug (events in view)</h2><div class="tw" id="matrix"></div></div>
+
+<div class="card" id="coverCard"><h2>Cover load <span class="small" id="coverNote"></span></h2>
+  <div class="small" style="line-height:1.45;margin-bottom:10px">The goods the drugs travelled with, or were declared as (for example fruit, timber or machinery). It is read from the wording of the news reports by keyword rules, so treat it as a lead and open the news article to check it. Only recognised goods are shown: a report that does not name the goods, or where the word is unclear, is left out. The section follows the filters above.</div>
+  <div class="grid2">
+    <div><div class="chartbox"><canvas id="cCover"></canvas></div></div>
+    <div class="tw" id="coverMx"></div>
+  </div>
+  <div id="coverList" style="margin-top:10px"></div>
+</div>
+
+<div class="card" id="coverAnCard"><h2>Cover load analysis <span class="small" id="coverAnNote"></span></h2>
+  <div class="small" style="line-height:1.45;margin-bottom:10px">What the cover loads in the block above add up to: which goods were used most, what was hidden in them, where they were seized and how risky those cases were. It uses only the reports that name the goods (see the note above), follows the filters at the top, and is a lead to check, not proof. News coverage favours large and unusual seizures.</div>
+  <ul id="coverAnList" style="margin:4px 0 12px 18px;padding:0;line-height:1.5"></ul>
+  <div class="grid2">
+    <div><h4 style="margin:0 0 6px;font-size:12.5px;color:var(--brand)">What the cover load was (share of goods mentions)</h4><div class="chartbox"><canvas id="cCovPie"></canvas></div></div>
+    <div><h4 style="margin:0 0 6px;font-size:12.5px;color:var(--brand)">Most used goods (number of reports)</h4><div class="chartbox"><canvas id="cCovItems"></canvas></div></div>
+    <div><h4 style="margin:0 0 6px;font-size:12.5px;color:var(--brand)">What was hidden in the cover load (share of reports)</h4><div class="chartbox"><canvas id="cCovDrugPie"></canvas></div></div>
+    <div><h4 style="margin:0 0 6px;font-size:12.5px;color:var(--brand)">Where cover loads were seized (top countries)</h4><div class="chartbox"><canvas id="cCovCountry"></canvas></div></div>
+  </div>
+</div>
+
+<div class="card" id="lookCard"><h2>What to look for <span class="small">(indicator cards)</span></h2>
+  <div class="small" style="line-height:1.45">Practical starting points in the style of PCCP risk indicators. They are general guidance compiled from common customs practice and from the reports in this tool. They are <b>not official PCCP or WCO material</b>, so check them against your training and local procedures. An indicator is a reason to look closer, never proof. Use several together, base checks on cargo, documents and route (not on a person's nationality or appearance), and follow your agency's legal powers and safety rules.</div>
+  <div class="tabs"><button type="button" data-tab="c" class="on">Concealment methods</button><button type="button" data-tab="r">Route patterns</button></div>
+  <div id="lookList"></div>
+</div>
+
+<div class="card" id="infCard"><h2>What this data suggests <span class="small">(law enforcement view of the events in view)</span></h2>
+  <div class="small" style="line-height:1.45;margin-bottom:10px">A short reading of the reports in the current filter. It follows the filters above, so change the period, drug or country to see it change. These are patterns in <b>news reports</b>, not in all seizures: they show where to look, not proof.</div>
+  <div class="tabs"><button type="button" data-itab="c" class="on">Seizures and concealment</button><button type="button" data-itab="r">Route patterns</button></div>
+  <div id="infC">
+  <div class="grid2" style="margin:0">
+    <div><h4 style="margin:0 0 6px;font-size:12.5px;color:var(--brand)">What was seized (share of reports)</h4><div class="chartbox"><canvas id="cInfPie"></canvas></div></div>
+    <div><h4 style="margin:0 0 6px;font-size:12.5px;color:var(--brand)">How it was hidden (number of reports)</h4><div class="chartbox"><canvas id="cInfCol"></canvas></div></div>
+  </div>
+  <h4 style="margin:14px 0 4px;font-size:12.5px;color:var(--brand)">What this suggests</h4>
+  <ul id="infList" style="margin:4px 0 0 18px;padding:0;line-height:1.5"></ul>
+  </div>
+  <div id="infR" hidden>
+    <div class="grid2" style="margin:0">
+      <div><h4 style="margin:0 0 6px;font-size:12.5px;color:var(--brand)">Where the goods came from (share of reports with a known origin)</h4><div class="chartbox"><canvas id="cRtPie"></canvas></div></div>
+      <div><h4 style="margin:0 0 6px;font-size:12.5px;color:var(--brand)">Most repeated routes (number of reports)</h4><div class="chartbox"><canvas id="cRtCol"></canvas></div></div>
+    </div>
+    <h4 style="margin:14px 0 4px;font-size:12.5px;color:var(--brand)">What this suggests</h4>
+    <ul id="rtList" style="margin:4px 0 0 18px;padding:0;line-height:1.5"></ul>
+  </div>
+</div>
+
+</section>
+<section class="view" id="v-events">
+<div class="card"><h2>Events <span class="small" id="evCount"></span></h2><div id="cardBar" class="small"></div><div class="tw2" id="evTop"><div></div></div><div class="tw" id="evWrap" style="max-height:640px"><table id="evT"></table></div></div>
+</section>
+<section class="view" id="v-library">
+<div class="card" id="libCard"><h2>News article library <span class="small" id="libCount"></span></h2>
+  <div class="small" style="margin-bottom:8px">Every news article behind the events above, newest first. Type to search by headline, drug, country, place, route or news outlet.</div>
+  <input id="libQ" type="search" placeholder="Search articles, e.g. cocaine Antwerp, cannabis India, container..." style="width:100%;padding:9px 12px;border:1px solid #9fb4cf;border-radius:8px;font:inherit;margin-bottom:10px">
+  <div id="libList" style="overflow-y:auto;border:1px solid #c9d6e8;border-radius:8px;padding:0 12px"></div><div class="small" id="libHint" style="margin-top:6px;text-align:center"></div></div>
+</section>
+<section class="view" id="v-method">
+<div class="card"><h2>Coverage: where the tool may be blind <span class="small" id="covNote"></span></h2>
+  <div id="cmap"></div>
+  <div class="legend">
+    <span><b style="background:#2e8b57"></b>reports found (bigger = more)</span><span><b style="background:#e0a800"></b>quiet: no reports, but its language is searched</span>
+    <span><b style="background:#c0392b"></b>blind: none of its main languages is searched</span><span><b style="background:#fff;border:3px solid #12355b"></b>official website searched</span>
+  </div>
+  <details class="lk" open><summary><b>How to read this map</b></summary><div class="lkb small" style="line-height:1.5">
+    <p style="margin:0 0 6px">This map checks the tool itself, not the drug trade. The dashboard only knows about seizures that appear in the news it searches, so it shows where that search is working and where it may be missing things.</p>
+    <p style="margin:0 0 6px"><b style="color:#2e8b57">Green</b>: seizure reports were found for this country (bigger circle = more reports). <b style="color:#b8860b">Yellow</b>: nothing found, although the country's language is searched. Either nothing was reported or the news was not picked up. <b style="color:#c0392b">Red</b>: none of the country's main languages is searched, so nothing can appear from there. <b style="color:#12355b">Dark ring</b>: an official customs or police website is searched as well.</p>
+    <p style="margin:0">Use it to judge gaps. Few or no reports from a country does not mean little smuggling; a yellow or red dot may only mean the tool cannot see it. Adding a language or an official website for those countries is the way to close the gap.</p>
+  </div></details>
+  <div class="small" id="covText" style="margin-top:8px;line-height:1.45"></div>
+  <details class="lk"><summary><b>Countries with no main language searched</b><span class="cnt" id="blindN"></span></summary><div class="lkb small" id="blindList"></div></details>
+  <details class="lk"><summary><b>Reports found by language</b></summary><div class="lkb" id="langList"></div></details>
+</div>
+
+<div class="card"><h2>How risk is scored</h2>
+  <details class="lk"><summary><b>Open the explanation</b><span class="lks">The score (0-100) ranks reports for analyst attention. It is built from five separate dimensions, so no single factor decides it. Seizure weight is capped at 10 points.</span></summary><div class="lkb small" id="riskHow"></div></details>
+</div>
+
+</section>
+<footer id="foot"></footer>
+</div>
+
+<script src="data.js?v=__BUILD__"></script>
+<div id="evModal" role="dialog" aria-modal="true"><div class="box"><div class="hd"><b id="evTitle"></b><button class="x" id="evClose" aria-label="Close">&times;</button></div><div class="bd" id="evBody"></div></div></div>
+<script>
+const D = window.__SW.data;
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const safe = u => /^https?:\/\//i.test(u || '') ? u : '#';
+const COL = {'Cocaine':'#1f77b4','Cannabis':'#2ca02c','Heroin/Opium':'#8c564b','Methamphetamine':'#ff7f0e','NSA':'#9467bd','Cigarettes':'#7f7f7f','Unspecified':'#bcbd22'};
+const CATCOL = {'Tobacco':'#7f7f7f','Precursor chemical':'#17becf','Hazardous chemical':'#bcbd22','Cultural heritage':'#8c564b','Stolen vehicle':'#d62728','CITES protected timber':'#8c6d31','Arms and ammunition':'#e377c2','CITES elephant ivory':'#9467bd','CITES protected fauna':'#2ca02c'};
+const ITEMCAT = {};
+D.events.forEach(e => { if (e.drug && e.category) ITEMCAT[e.drug] = e.category; });
+const col = d => COL[d] || CATCOL[ITEMCAT[d]] || '#999';
+const num = n => n == null ? '' : Number(n).toLocaleString(undefined, {maximumFractionDigits: 1});
+const qty = e => { const p = []; if (e.kg) p.push(e.kg >= 1000 ? (e.kg/1000).toFixed(1) + ' t' : Math.round(e.kg) + ' kg'); if (e.units) p.push(num(e.units) + ' ' + (e.unit_type||'')); return p.join(', '); };
+const asof = new Date(D.meta.asof + 'T00:00:00Z');
+const fmt = d => d.toISOString().slice(0,10);
+let sortKey = 'date', sortDir = -1, charts = {};
+
+// ---- static bits
+$('sub').textContent = 'Data as of ' + D.meta.asof + ' | generated ' + D.meta.generated + ' | ' + D.meta.total_events + ' seizure events tracked';
+const bn = [];
+if (D.meta.demo) bn.push('<div class="banner demo"><b>SAMPLE DATA.</b> These are made-up articles used to demonstrate the platform. Run the real collector to replace them.</div>');
+if (!D.meta.history_ok) bn.push('<div class="banner hist">Building history: trend, spike and new-corridor alerts switch on after ' + D.meta.min_history + ' days of data (currently ' + D.meta.history_days + ').</div>');
+$('banners').innerHTML = bn.join('');
+// CITES elephant ivory / protected fauna / protected timber share one "CITES" entry in the filter
+const catGroup = c => (c && c.startsWith('CITES')) ? 'CITES' : (c || 'Drug');
+const CITES_SUB = {'CITES elephant ivory': 'Elephant ivory', 'CITES protected fauna': 'Protected fauna', 'CITES protected timber': 'Wood'};
+// all CITES wood is one type on the dashboard; the species stays in the article and the CSV / Excel
+const WOOD = 'CITES-protected wood';
+D.events.forEach(e => { if (e.category === 'CITES protected timber') e.drug = WOOD; });
+(D.monthly || []).forEach(r => { if (r[1] === 'CITES protected timber') r[2] = WOOD; });
+[...new Set(D.events.map(e => catGroup(e.category)))].sort().forEach(d => $('fCategory').insertAdjacentHTML('beforeend', '<option>' + esc(d) + '</option>'));
+// the Types list only offers items of the chosen category
+function fillTypes() {
+  const cg = $('fCategory').value, cur = $('fDrug').value;
+  const evs = D.events.filter(e => !cg || catGroup(e.category) === cg);
+  const items = [...new Set(evs.map(e => e.drug).filter(Boolean))].sort();
+  const label = cg === 'CITES' ? 'All CITES types' : cg ? 'All ' + esc(cg.toLowerCase()) + ' types' : 'All types';
+  let opts = items.map(d => '<option>' + esc(d) + '</option>').join('');
+  if (cg === 'CITES') {          // grouped: Elephant ivory / Protected fauna / CITES-protected wood (one type)
+    opts = Object.entries(CITES_SUB).map(([c, lab]) => {
+      const its = c === 'CITES protected timber' ? [WOOD] : [...new Set(evs.filter(e => e.category === c).map(e => e.drug).filter(Boolean))].sort();
+      return '<optgroup label="' + lab + '">' + its.map(d => '<option>' + esc(d) + '</option>').join('') + '</optgroup>';
+    }).join('');
+  }
+  $('fDrug').innerHTML = '<option value="">' + label + '</option>' + opts;
+  $('fDrug').value = [...$('fDrug').options].some(o => o.value === cur) ? cur : '';
+}
+fillTypes();
+$('fCategory').addEventListener('change', fillTypes);   // runs before render, so a stale type is cleared first
+[...new Set(D.events.map(e => e.transport).filter(Boolean))].sort().forEach(d => $('fMode').insertAdjacentHTML('beforeend', '<option>' + esc(d) + '</option>'));
+['fCategory','fDrug','fBand','fDays','fMode'].forEach(i => $(i).addEventListener('change', render));
+$('fQ').addEventListener('input', render);
+
+// ---- Infrastructure multi-select checkbox filter
+const infraSelected = new Set();
+const infraOptions = [...new Set(D.events.flatMap(e => e.infra || []))].sort();
+function infraLabel(v) { return v.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()); }
+function renderInfraList(filterText) {
+  const ft = (filterText || '').trim().toLowerCase();
+  const opts = infraOptions.filter(v => !ft || infraLabel(v).toLowerCase().includes(ft));
+  $('fInfraList').innerHTML = opts.length ? opts.map(v =>
+    '<label><input type="checkbox" value="' + esc(v) + '"' + (infraSelected.has(v) ? ' checked' : '') + '><span>' + esc(infraLabel(v)) + '</span></label>'
+  ).join('') : '<div class="mselEmpty">No matches</div>';
+}
+function updateInfraBtn() {
+  const c = $('fInfraCount');
+  if (infraSelected.size) { c.textContent = infraSelected.size; c.style.display = ''; } else { c.style.display = 'none'; }
+}
+renderInfraList('');
+updateInfraBtn();
+$('fInfraBtn').addEventListener('click', () => {
+  const open = !$('fInfraPanel').hidden;
+  $('fInfraPanel').hidden = open;
+  if (!open) { $('fInfraSearch').value = ''; renderInfraList(''); $('fInfraSearch').focus(); }
+});
+document.addEventListener('click', ev => { if (!$('fInfraWrap').contains(ev.target)) $('fInfraPanel').hidden = true; });
+$('fInfraSearch').addEventListener('input', ev => renderInfraList(ev.target.value));
+$('fInfraList').addEventListener('change', ev => {
+  if (ev.target.matches('input[type=checkbox]')) {
+    if (ev.target.checked) infraSelected.add(ev.target.value); else infraSelected.delete(ev.target.value);
+    updateInfraBtn(); render();
+  }
+});
+$('fInfraAllBtn').addEventListener('click', () => { infraOptions.forEach(v => infraSelected.add(v)); renderInfraList($('fInfraSearch').value); updateInfraBtn(); render(); });
+$('fInfraClearBtn').addEventListener('click', () => { infraSelected.clear(); renderInfraList($('fInfraSearch').value); updateInfraBtn(); render(); });
+
+function matcher() {
+  const q = $('fQ').value.trim().toLowerCase(), toks = q.split(/[\s>\u2192,;]+/).filter(t => t && !['to','from','via','-','->'].includes(t)), dr = $('fDrug').value, bd = $('fBand').value, md = $('fMode').value, cg = $('fCategory').value;
+  return e => (!cg || catGroup(e.category) === cg) && (!dr || e.drug === dr) && (!bd || e.band === bd) && (!md || e.transport === md) &&
+    (!infraSelected.size || (e.infra || []).some(x => infraSelected.has(x))) && (!cardFilter || cardFilter(e)) &&
+    (!toks.length || toks.every(t => [e.country,e.place,e.origin,e.dest,e.transit,e.conceal,e.title,e.title_en,e.corridor,e.route,e.drug,e.category,e.vessel,e.line,e.cover,e.containers,e.origin_place,e.dest_place].join(' ').toLowerCase().includes(t)));
+}
+function view() {
+  const [a, b] = periodRange($('fDays').value), ok = matcher();
+  return D.events.filter(e => e.date >= a && e.date <= b && ok(e));
+}
+
+// ---- Seizure events card: period picker (months and years use full history)
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const MSHORT = MONTHS.map(m => m.slice(0,3));
+const MONTHLY = D.monthly || [];
+const winStart = D.meta.window_start || (D.events.length ? D.events.reduce((a,e) => e.date < a ? e.date : a, D.events[0].date) : D.meta.asof);
+const asofS = D.meta.asof;
+const firstDate = D.meta.first_date || D.events.reduce((a,e) => e.date < a ? e.date : a, asofS);
+const addDays = (s, n) => fmt(new Date(new Date(s + 'T00:00:00Z').getTime() + n * 864e5));
+const monthEnd = ym => { const [y,m] = ym.split('-').map(Number); return fmt(new Date(Date.UTC(y, m, 0))); };
+const prevMonth = ym => { const [y,m] = ym.split('-').map(Number); return m === 1 ? (y-1) + '-12' : y + '-' + String(m-1).padStart(2,'0'); };
+const monthName = ym => MONTHS[+ym.slice(5,7) - 1] + ' ' + ym.slice(0,4);
+const dShort = s => (+s.slice(8,10)) + ' ' + MSHORT[+s.slice(5,7) - 1];
+// the page-wide period: '7' / '30' / '90' days, '9999' = all time, 'm:YYYY-MM', 'y:YYYY'
+function periodRange(val) {
+  if (val.startsWith('m:')) { const m = val.slice(2); return [m + '-01', m === asofS.slice(0,7) ? asofS : monthEnd(m)]; }
+  if (val.startsWith('y:')) { const y = val.slice(2); return [y + '-01-01', y === asofS.slice(0,4) ? asofS : y + '-12-31']; }
+  if (val === '9999') return ['0000-01-01', asofS];
+  return [addDays(asofS, -(+val - 1)), asofS];
+}
+function periodOptions(cur) {
+  const {months, years} = periodList();
+  const opt = (val, txt) => '<option value="' + val + '"' + (val === cur ? ' selected' : '') + '>' + txt + '</option>';
+  return opt('7','Last 7 days') + opt('30','Last 30 days') + opt('90','Last 90 days') + opt('9999','All time') +
+    '<optgroup label="By month">' + months.map(m => opt('m:' + m, monthName(m) + (m === asofS.slice(0,7) ? ' (to date)' : ''))).join('') + '</optgroup>' +
+    '<optgroup label="By year">' + years.map(y => opt('y:' + y, y + (y === asofS.slice(0,4) ? ' (to date)' : ''))).join('') + '</optgroup>';
+}
+function periodList() {
+  const ms = new Set(MONTHLY.map(r => r[0])); D.events.forEach(e => ms.add(e.date.slice(0,7)));
+  const months = [...ms].sort().reverse(), years = [...new Set(months.map(m => m.slice(0,4)))];
+  return {months, years};
+}
+// count events between two dates (inclusive). Inside the loaded window every filter applies;
+// further back the monthly summary is used, which knows category, type and risk band only.
+function countRange(a, b) {
+  if (a >= winStart) { const ok = matcher(); return {n: D.events.filter(e => e.date >= a && e.date <= b && ok(e)).length, partial: false}; }
+  const cg = $('fCategory').value, dr = $('fDrug').value, bd = $('fBand').value, ma = a.slice(0,7), mb = b.slice(0,7);
+  const n = MONTHLY.filter(r => r[0] >= ma && r[0] <= mb && (!cg || catGroup(r[1]) === cg) && (!dr || r[2] === dr) && (!bd || r[3] === bd)).reduce((s,r) => s + r[4], 0);
+  const other = $('fMode').value || infraSelected.size || $('fQ').value.trim() || cardFilter;
+  return {n, partial: !!other};
+}
+function cmp(label, a, b, n) {   // "label: count (+x%)", or a note if the period predates collection
+  if (b < firstDate) return label + ': no data yet';
+  const p = countRange(a, b);
+  if (a < firstDate) return label + ': ' + p.n.toLocaleString('en-GB') + ' (collection began ' + dShort(firstDate) + ')';
+  return label + ': ' + p.n.toLocaleString('en-GB') + change(n, p.n);
+}
+function change(n, p) {
+  if (!p) return '';
+  const pc = Math.round(100 * (n - p) / p);
+  return ' <span class="' + (pc > 0 ? 'up' : pc < 0 ? 'dn' : '') + '">(' + (pc > 0 ? '+' : '') + pc + '%)</span>';
+}
+function evCard(v) {
+  const evPeriod = $('fDays').value;
+  const sel = '<select class="per" id="evPer" aria-label="Period for the whole dashboard">' + periodOptions(evPeriod) + '</select>';
+  let n, d, part = false;
+  if (/^\d+$/.test(evPeriod) && evPeriod !== '9999') {
+    const k = +evPeriod, a = addDays(asofS, -(k - 1)), pa = addDays(a, -k), pb = addDays(a, -1);
+    const c = countRange(a, asofS); n = c.n; part = c.partial;
+    d = cmp('previous ' + k + ' days', pa, pb, n);
+  } else if (evPeriod === '9999') {
+    const c = countRange(firstDate < winStart ? firstDate.slice(0,7) + '-01' : firstDate, asofS); n = c.n; part = c.partial;
+    d = 'since ' + dShort(firstDate) + ' ' + firstDate.slice(0,4);
+  } else if (evPeriod.startsWith('m:')) {
+    const m = evPeriod.slice(2), a = m + '-01', cur = m === asofS.slice(0,7), b = cur ? asofS : monthEnd(m), pm = prevMonth(m);
+    const c = countRange(a, b); n = c.n; part = c.partial;
+    if (cur) {   // month to date: compare with the same days of the previous month
+      const day = Math.min(+asofS.slice(8,10), +monthEnd(pm).slice(8,10));
+      d = '1\u2013' + dShort(asofS) + ' \u00b7 ' + cmp('same days in ' + MONTHS[+pm.slice(5,7)-1], pm + '-01', pm + '-' + String(day).padStart(2,'0'), n);
+    } else d = cmp(MONTHS[+pm.slice(5,7)-1], pm + '-01', monthEnd(pm), n);
+  } else {
+    const y = evPeriod.slice(2), cur = y === asofS.slice(0,4), c = countRange(y + '-01-01', cur ? asofS : y + '-12-31'); n = c.n; part = c.partial;
+    const py = String(+y - 1), pb = cur ? (py + asofS.slice(4)) : py + '-12-31';
+    d = cmp((cur ? 'same period ' : '') + py, py + '-01-01', pb, n);
+  }
+  if (part) d += '<br>older months: category, type and risk filters only';
+  if (periodRange(evPeriod)[0] < winStart && firstDate < winStart) d += '<br>map and tables hold the last ' + Math.round((new Date(asofS) - new Date(winStart)) / 864e5 + 1) + ' days';
+  return '<div class="kpi"><div class="lr"><div class="l">Seizure events</div>' + sel + '</div><div class="v">' + n.toLocaleString('en-GB') + '</div><div class="d">' + d + '</div></div>';
+}
+$('kpis').addEventListener('change', ev => {
+  if (ev.target.id !== 'evPer') return;
+  $('fDays').value = ev.target.value; render();
+});
+const by = (arr, f) => { const m = {}; arr.forEach(x => { const k = f(x); if (k != null && k !== '') m[k] = (m[k] || 0) + 1; }); return m; };
+const topN = (m, n) => Object.entries(m).sort((a,b) => b[1]-a[1]).slice(0, n);
+
+function kpis(v) {
+  const hi = v.filter(e => e.band === 'High').length, cont = v.filter(e => e.container).length,
+        ins = v.filter(e => e.insider).length, kg = v.reduce((s,e) => s + (e.kg || 0), 0);
+  const nd = v.filter(e => e.category && e.category !== 'Drug');
+  const byCat = {}; nd.forEach(e => byCat[e.category] = (byCat[e.category]||0)+1);
+  const catSummary = Object.entries(byCat).sort((a,b) => b[1]-a[1]).map(([c,n]) => n + ' ' + c).join(', ');
+  const K = [['High risk', hi, v.length ? Math.round(100*hi/v.length) + '% of events' : ''],
+    ['Container cases', cont, v.length ? Math.round(100*cont/v.length) + '% of events' : ''],
+    ['Insider signals', ins, 'staff involved in the conspiracy (port / airport / customs / police)'],
+    ['Total weight', kg >= 1000 ? (kg/1000).toFixed(1) + ' t' : Math.round(kg) + ' kg', 'excl. pills / sticks'],
+    ['Other contraband', nd.length, catSummary || 'stolen vehicles, precursor and hazardous chemicals, cultural heritage, CITES timber, ivory and fauna, arms']];
+  $('kpis').innerHTML = evCard(v) + K.map(k => k[0] === 'Insider signals'
+    ? '<div class="kpi kpi-click' + (cardName === INS_NAME && cardFilter ? ' on' : '') + '" id="kpiIns" role="button" tabindex="0" title="Click to list every news article about an internal conspiracy involving staff"><div class="l">' + k[0] + '</div><div class="v">' + k[1] + '</div><div class="d">' + esc(k[2]) + '</div><div class="d" style="color:#2a6f97;font-weight:600">' + (cardName === INS_NAME && cardFilter ? 'Showing these - click to show all' : 'Click to see the articles') + '</div></div>'
+    : '<div class="kpi"><div class="l">' + k[0] + '</div><div class="v">' + k[1] + '</div><div class="d">' + esc(k[2]) + '</div></div>').join('');
+}
+var INS_NAME = 'Insider signals - internal conspiracy involving staff';
+function toggleInsider() {
+  if (cardFilter && cardName === INS_NAME) { cardFilter = null; cardName = ''; showCardBar(); render(); return; }
+  cardFilter = e => !!e.insider; cardName = INS_NAME;
+  showCardBar(); render(); const t = $('libCard') || $('evT'); if (t) t.scrollIntoView({behavior: 'smooth', block: 'start'});
+}
+$('kpis').addEventListener('click', ev => { if (ev.target.closest('#kpiIns')) toggleInsider(); });
+$('kpis').addEventListener('keydown', ev => { if ((ev.key === 'Enter' || ev.key === ' ') && ev.target.closest('#kpiIns')) { ev.preventDefault(); toggleInsider(); } });
+
+// ---- every section follows the filters at the top (category, type, risk band, transport, infrastructure, search, indicator cards)
+function filtersActive() { return !!($('fDrug').value || $('fCategory').value || $('fBand').value || $('fMode').value || $('fQ').value.trim() || infraSelected.size || cardFilter); }
+var urlMapCache = null, evByIdCache = null;
+function urlMap() {
+  if (!urlMapCache) {
+    urlMapCache = new Map();
+    D.events.forEach(e => [e.url].concat((e.arts || []).map(a => a.u)).filter(Boolean).forEach(u => { if (!urlMapCache.has(u)) urlMapCache.set(u, []); urlMapCache.get(u).push(e); }));
+  }
+  return urlMapCache;
+}
+// Alerts: shown when every report they link to passes the filters (the period does not apply: alerts are about today).
+function alertsInView() {
+  const all = D.alerts || [], dr = $('fDrug').value;
+  if (!filtersActive()) return all;
+  const um = urlMap(), ok = matcher(), onlyDrug = dr && !$('fCategory').value && !$('fBand').value && !$('fMode').value && !$('fQ').value.trim() && !infraSelected.size && !cardFilter;
+  return all.filter(a => {
+    const ev = []; (a.urls || []).forEach(u => (um.get(u) || []).forEach(e => ev.push(e)));
+    if (ev.length) return ev.every(ok);
+    return !!onlyDrug && (a.title + ' ' + a.detail).toLowerCase().includes(dr.toLowerCase());   // no linked report found: match on the drug name
+  });
+}
+// Corridors and hotspots: recomputed from the reports that pass the filters (all history, trend = last 30 days vs the 30 before).
+function statsInView() {
+  if (!filtersActive()) return {corr: D.corridors, hot: D.hotspots};
+  const TW = 30, rs = addDays(D.meta.asof, -(TW - 1)), ps = addDays(rs, -TW), ev = D.events.filter(matcher());
+  const mode = a => { const m = {}; a.forEach(x => { if (x) m[x] = (m[x] || 0) + 1; }); const t = Object.entries(m).sort((x, y) => y[1] - x[1])[0]; return t ? t[0] : ''; };
+  const grp = key => { const m = new Map(); ev.forEach(e => { const k = e[key]; if (k) { if (!m.has(k)) m.set(k, []); m.get(k).push(e); } }); return [...m]; };
+  const corr = grp('corridor').map(([c, g]) => {
+    const r = g.filter(e => e.date >= rs), p = g.filter(e => e.date >= ps && e.date < rs), first = g.reduce((a, e) => e.date < a ? e.date : a, g[0].date);
+    const trend = (D.meta.history_ok && first >= rs && r.length > 0) ? 'NEW' : (r.length >= 3 && r.length >= 2 * Math.max(p.length, 1)) ? 'SURGING' : (r.length || p.length) ? (r.length < p.length ? 'DECLINING' : 'STABLE') : 'INACTIVE';
+    return {corridor: c, events_recent: r.length, events_prior: p.length, events_total: g.length, top_drug: mode(g.map(e => e.drug)), avg_risk: Math.round(10 * g.reduce((s, e) => s + (e.score || 0), 0) / g.length) / 10, trend};
+  }).sort((a, b) => b.events_recent - a.events_recent || b.avg_risk - a.avg_risk || b.events_total - a.events_total);
+  const hot = grp('country').map(([c, g]) => ({country: c, events_total: g.length, events_recent: g.filter(e => e.date >= rs).length, events_prior: g.filter(e => e.date >= ps && e.date < rs).length,
+    high_risk: g.filter(e => e.band === 'High').length, top_drug: mode(g.map(e => e.drug)), top_place: mode(g.map(e => e.place))}))
+    .sort((a, b) => b.events_recent - a.events_recent || b.events_total - a.events_total);
+  return {corr, hot};
+}
+// Repeat links: only the reports that pass the filters count; a link needs at least two of them.
+function linksInView() {
+  const all = D.links || [];
+  if (!filtersActive()) return all;
+  if (!evByIdCache) evByIdCache = new Map(D.events.map(e => [e.id, e]));
+  const ok = matcher(), cut = addDays(D.meta.asof, -29);
+  return all.map(r => {
+    const ev = (r.ids || []).map(i => evByIdCache.get(i)).filter(e => e && ok(e));
+    if (ev.length < 2) return null;
+    return Object.assign({}, r, {n: ev.length, recent: ev.filter(e => e.date >= cut).length, last: ev.reduce((a, e) => e.date > a ? e.date : a, ''),
+      countries: [...new Set(ev.map(e => e.country).filter(Boolean))], items: [...new Set(ev.map(e => e.drug).filter(Boolean))], urls: ev.map(e => e.url).filter(Boolean).slice(0, 5)});
+  }).filter(Boolean);
+}
+// Production chain: a country row stays when at least one of the reports behind it passes the filters.
+function chainInView() {
+  const C0 = D.chain || {countries: []};
+  if (!filtersActive()) return C0;
+  const um = urlMap(), ok = matcher(), rows = C0.countries.filter(r => (r.urls || []).some(u => (um.get(u) || []).some(ok)));
+  const sum = k => rows.reduce((s, r) => s + (r[k] || 0), 0);
+  return Object.assign({}, C0, {countries: rows, n_precursor: sum('n_precursor'), n_lab: sum('n_lab')});
+}
+function alerts() {
+  const ALL = D.alerts || [], A = alertsInView(), SHOW = 5, of = A.length !== ALL.length ? ' of ' + ALL.length : '';
+  $('alertNote').textContent = A.length ? (A.length > SHOW ? '(' + A.length + of + ' today; ' + SHOW + ' shown, scroll for ' + (A.length > 100 ? 'the top 100' : 'more') + ')' : '(' + A.length + of + ' today)') : '';
+  $('alerts').innerHTML = A.length ? A.slice(0, 100).map(a => '<div class="alert ' + esc(a.severity) + '"><div class="k">' + esc(a.type) + ' | ' + esc(a.severity) + '</div><div class="t">' + esc(a.title) + '</div><div class="d">' + esc(a.detail) + '</div><div class="small">' +
+    (a.urls || []).map((u,i) => '<a href="' + esc(safe(u)) + '" target="_blank" rel="noopener noreferrer">source ' + (i+1) + '</a>').join(' &middot; ') + '</div></div>').join('')
+    : (ALL.length ? '<div class="small">No alerts match the current filters.</div>' : '<div class="small">No alerts today. (Trend alerts need ' + D.meta.min_history + '+ days of history.)</div>');
+  fitAlerts(SHOW);
+}
+
+// Size the alerts box so exactly the first few alerts are visible; the rest scroll.
+function fitAlerts(n) {
+  const box = $('alerts'), items = box.querySelectorAll('.alert');
+  if (items.length <= n) { box.style.maxHeight = 'none'; box.style.overflowY = 'visible'; return; }
+  const last = items[n - 1];
+  box.style.overflowY = 'auto';
+  box.style.maxHeight = (last.offsetTop - box.offsetTop + last.offsetHeight + 8) + 'px';
+}
+window.addEventListener('resize', () => { if (D.alerts.length) fitAlerts(5); });
+
+function chart(id, cfg) {
+  if (!window.Chart) return;
+  if (charts[id]) { charts[id].data = cfg.data; charts[id].update('none'); return; }
+  cfg.options = Object.assign({responsive: true, maintainAspectRatio: false, animation: false}, cfg.options || {});
+  charts[id] = new Chart($(id), cfg);
+}
+
+function timeChart(v) {
+  const [pa, pb] = periodRange($('fDays').value), weekly = (new Date(pb) - new Date(pa < firstDate ? firstDate : pa)) / 864e5 > 31;
+  const key = d => { if (!weekly) return d; const t = new Date(d + 'T00:00:00Z'), dow = (t.getUTCDay() + 6) % 7; return fmt(new Date(t.getTime() - dow * 864e5)); };
+  const labels = [...new Set(v.map(e => key(e.date)))].sort();
+  const drugs = [...new Set(v.map(e => e.drug))].sort();
+  chart('cTime', {type: 'bar', data: {labels, datasets: drugs.map(d => ({label: d, backgroundColor: col(d),
+    data: labels.map(l => v.filter(e => e.drug === d && key(e.date) === l).length)}))},
+    options: {scales: {x: {stacked: true, ticks: {maxRotation: 60}}, y: {stacked: true, beginAtZero: true, ticks: {precision: 0}}}, plugins: {legend: {position: 'bottom', labels: {boxWidth: 10}}}}});
+}
+function hbar(id, pairs, color, allLabels) {
+  chart(id, {type: 'bar', data: {labels: pairs.map(p => p[0].length > 42 ? p[0].slice(0,40) + '...' : p[0]), datasets: [{data: pairs.map(p => p[1]), backgroundColor: color}]},
+    options: {indexAxis: 'y', plugins: {legend: {display: false}}, scales: {x: {beginAtZero: true, ticks: {precision: 0}}, y: {ticks: {autoSkip: !allLabels}}}}});
+}
+function mode(v) {
+  const m = topN(by(v, e => e.transport || 'Unknown'), 8);
+  chart('cMode', {type: 'doughnut', data: {labels: m.map(x => x[0]), datasets: [{data: m.map(x => x[1]), backgroundColor: ['#12355b','#2a6f97','#61a5c2','#89c2d9','#a9d6e5','#c9a227','#8894a5','#b5bcc7']}]},
+    options: {plugins: {legend: {position: 'right', labels: {boxWidth: 10}}}}});
+}
+
+// heat table: rows = {row name: {drug: count}}, one column per drug, darker = more reports
+function heat(rows, drugs, head) {
+  const names = Object.keys(rows).sort((a,b) => Object.values(rows[b]).reduce((s,x)=>s+x,0) - Object.values(rows[a]).reduce((s,x)=>s+x,0));
+  const mx = Math.max(...names.flatMap(n => Object.values(rows[n])));
+  return '<table class="heat"><tr><th>' + head + '</th>' + drugs.map(d => '<th>' + esc(d) + '</th>').join('') + '</tr>' +
+    names.map(n => '<tr><td>' + esc(n) + '</td>' + drugs.map(d => { const c = rows[n][d] || 0; return '<td style="background:rgba(18,53,91,' + (c ? (0.08 + 0.6 * c / mx).toFixed(2) : 0) + ');color:' + (c/mx > .5 ? '#fff' : 'inherit') + '">' + (c || '') + '</td>'; }).join('') + '</tr>').join('') + '</table>';
+}
+function matrix(v) {
+  const rows = {}, drugs = [...new Set(v.map(e => e.drug))].sort();
+  v.forEach(e => (e.conceal ? e.conceal.split('; ') : []).forEach(c => { rows[c] = rows[c] || {}; rows[c][e.drug] = (rows[c][e.drug] || 0) + 1; }));
+  if (!Object.keys(rows).length) { $('matrix').innerHTML = '<div class="small">No concealment details in view.</div>'; return; }
+  $('matrix').innerHTML = heat(rows, drugs, 'Concealment');
+}
+
+// ---- Cover load: the goods the drugs travelled with or were declared as (events in view that name them)
+const GOODS_OF = D.cover_items || {};      // goods item -> group
+function coverLoad(v) {
+  const w = v.filter(e => e.cover_g && e.cover_g.length);
+  $('coverNote').textContent = '(' + w.length + ' of ' + v.length + ' reports in view name the goods)';
+  hbar('cCover', topN(by(w.flatMap(e => e.cover_g), x => x), 13), '#c9a227', true);
+  if (!w.length) {
+    $('coverMx').innerHTML = '<div class="small">No cover load named in the reports in view.</div>';
+    $('coverList').innerHTML = '';
+    return;
+  }
+  const rows = {}, drugs = topN(by(w, e => e.drug), 6).map(x => x[0]).sort();      // the six most common items keep the table narrow
+  w.forEach(e => e.cover_g.forEach(g => { rows[g] = rows[g] || {}; if (drugs.includes(e.drug)) rows[g][e.drug] = (rows[g][e.drug] || 0) + 1; }));
+  $('coverMx').innerHTML = heat(rows, drugs, 'Cover load');
+  // one drop-down per group, newest cases first, each with its news article
+  const open = new Set([...document.querySelectorAll('#coverList details[open]')].map(d => d.dataset.g));
+  $('coverList').innerHTML = topN(by(w.flatMap(e => e.cover_g), x => x), 99).map(([g, n]) => {
+    const ev = w.filter(e => e.cover_g.includes(g)).sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : b.score - a.score));
+    const items = topN(by(ev.flatMap(e => (e.cover || '').split('; ').filter(x => GOODS_OF[x] === g)), x => x), 6).map(([k, c]) => esc(k) + ' ' + c).join(', ');
+    return '<details class="lk" data-g="' + esc(g) + '"' + (open.has(g) ? ' open' : '') + '><summary><b>' + esc(g) + '</b><span class="cnt">' + n + '</span><span class="lks">' + items + '</span></summary>' +
+      '<div class="lkb tw cscroll"><table><tr><th>Date</th><th>Goods</th><th>Item</th><th>Route</th><th>Seized in</th><th>Risk</th><th>Report</th></tr>' +
+      ev.map(e => '<tr><td>' + esc(e.date) + '</td><td>' + esc(e.cover) + '</td><td>' + esc(e.drug_label || e.drug) + '</td><td class="w2">' + esc(e.route || e.corridor || '') + '</td><td class="w2">' +
+        esc([e.place, e.country].filter(Boolean).join(', ')) + '</td><td><span class="chip ' + esc(e.band) + '">' + esc(e.band) + '</span></td><td><a href="' + esc(safe(e.url)) + '" target="_blank" rel="noopener noreferrer" title="' + esc(e.title_en || e.title) + '">news article</a></td></tr>').join('') +
+      '</table>' + '<div class="small" style="margin-top:6px">All ' + ev.length + ' shown, newest first. Scroll inside the block to see them all.</div>' + '</div></details>';
+  }).join('');
+}
+
+// ---- Cover load analysis: pie and bar charts plus a plain-language reading of the cover loads in view
+function coverAnalysis(v) {
+  const w = v.filter(e => e.cover_g && e.cover_g.length), n = w.length;
+  const pct = (a, b) => b ? Math.round(100 * a / b) : 0;
+  const PALC = ['#12355b', '#2a6f97', '#c9a227', '#2e8b57', '#e08a00', '#8e5bb5', '#c0392b', '#61a5c2', '#7f8c5a', '#a05a2c', '#5d6d7e', '#d98cb3', '#b8c4d6'];
+  $('coverAnNote').textContent = '(' + n + ' of ' + v.length + ' reports in view name the goods)';
+  const ids = ['cCovPie', 'cCovItems', 'cCovDrugPie', 'cCovCountry'];
+  if (!n) {
+    ids.forEach(i => { if (charts[i]) { charts[i].destroy(); delete charts[i]; } });
+    $('coverAnList').innerHTML = '<li>No cover load named in the reports in view. Widen the period or clear a filter.</li>';
+    return;
+  }
+  // 1 group share (a report with two kinds of goods counts once in each)
+  const grp = topN(by(w.flatMap(e => e.cover_g), x => x), 99), gTot = grp.reduce((s, x) => s + x[1], 0);
+  const gTop = grp.slice(0, 7), gRest = grp.slice(7).reduce((s, x) => s + x[1], 0);
+  if (gRest) gTop.push(['Other', gRest]);
+  chart('cCovPie', {type: 'pie', data: {labels: gTop.map(x => x[0] + ' (' + pct(x[1], gTot) + '%)'), datasets: [{data: gTop.map(x => x[1]),
+    backgroundColor: gTop.map((x, i) => x[0] === 'Other' ? '#b8c4d6' : PALC[i % PALC.length])}]},
+    options: {plugins: {legend: {position: 'right', labels: {boxWidth: 12, font: {size: 11}}}}}});
+  // 2 individual goods
+  const items = topN(by(w.flatMap(e => (e.cover || '').split('; ').filter(x => GOODS_OF[x])), x => x), 12);
+  hbar('cCovItems', items, '#12355b', true);
+  // 3 drugs / items found in cover loads
+  const drugs = topN(by(w, e => e.drug), 99), dTop = drugs.slice(0, 6), dRest = drugs.slice(6).reduce((s, x) => s + x[1], 0);
+  if (dRest) dTop.push(['Other', dRest]);
+  chart('cCovDrugPie', {type: 'pie', data: {labels: dTop.map(x => x[0] + ' (' + pct(x[1], n) + '%)'), datasets: [{data: dTop.map(x => x[1]),
+    backgroundColor: dTop.map(x => x[0] === 'Other' ? '#b8c4d6' : col(x[0]))}]},
+    options: {plugins: {legend: {position: 'right', labels: {boxWidth: 12, font: {size: 11}}}}}});
+  // 6 seizure countries
+  const ctry = topN(by(w, e => e.country), 10);
+  hbar('cCovCountry', ctry, '#2a6f97', true);
+  // plain-language reading
+  const L = [], hi = w.filter(e => e.band === 'High').length;
+  L.push('<b>' + esc(grp[0][0]) + '</b> was the most common cover load: ' + grp[0][1] + ' of the ' + n + ' reports that name the goods (' + pct(grp[0][1], n) + '%)' +
+    (grp[1] ? ', followed by ' + esc(grp[1][0]) + ' (' + pct(grp[1][1], n) + '%)' : '') + (grp[2] ? ' and ' + esc(grp[2][0]) + ' (' + pct(grp[2][1], n) + '%).' : '.'));
+  if (items[0]) L.push('The single most named goods were <b>' + esc(items[0][0]) + '</b> (' + items[0][1] + ')' + (items[1] ? ', ' + esc(items[1][0]) + ' (' + items[1][1] + ')' : '') + (items[2] ? ' and ' + esc(items[2][0]) + ' (' + items[2][1] + ')' : '') +
+    '. Compare these against the declared trade of the shipper and consignee: goods that do not fit the company or the route are the lead.');
+  if (drugs[0]) L.push('Cover loads most often hid <b>' + esc(drugs[0][0]) + '</b> (' + pct(drugs[0][1], n) + '% of these reports)' + (drugs[1] ? ', then ' + esc(drugs[1][0]) + ' (' + pct(drugs[1][1], n) + '%)' : '') + '.');
+  // which group leans most toward one item (needs at least 4 reports)
+  let lean = null;
+  grp.filter(g => g[1] >= 4).forEach(([g]) => { const ev = w.filter(e => e.cover_g.includes(g)), top = topN(by(ev, e => e.drug), 1)[0], s = top[1] / ev.length;
+    if (!lean || s > lean.s) lean = {g, d: top[0], s, n: ev.length}; });
+  if (lean && lean.s >= 0.5) L.push('<b>' + esc(lean.g) + '</b> leans strongly one way: ' + pct(lean.s * lean.n, lean.n) + '% of its ' + lean.n + ' reports involved ' + esc(lean.d) + '.');
+  // riskiest group (needs at least 4 reports)
+  const riskG = grp.filter(g => g[1] >= 4).map(([g, c]) => { const ev = w.filter(e => e.cover_g.includes(g)); return {g, c, avg: ev.reduce((s, e) => s + (e.score || 0), 0) / ev.length, hi: ev.filter(e => e.band === 'High').length}; }).sort((a, b) => b.avg - a.avg);
+  if (riskG[0]) L.push('Overall ' + pct(hi, n) + '% of these cases are High risk. The highest average risk score is for <b>' + esc(riskG[0].g) + '</b> (' + riskG[0].avg.toFixed(0) + ', ' + riskG[0].hi + ' of ' + riskG[0].c + ' High).');
+  if (ctry[0]) { const t3 = ctry.slice(0, 3); L.push('Cover loads were seized most in <b>' + t3.map(x => esc(x[0])).join(', ') + '</b> (' + pct(t3.reduce((s, x) => s + x[1], 0), n) + '% of these reports).'); }
+  $('coverAnList').innerHTML = L.map(x => '<li style="margin:6px 0">' + x + '</li>').join('');
+}
+
+function staticTables() {
+  const ST = statsInView(), none = filtersActive();
+  $('corr').innerHTML = ST.corr.length ? '<table><tr><th>Corridor</th><th>Trend</th><th>30d</th><th>Prev 30d</th><th>Total</th><th>Main drug</th><th>Avg risk</th></tr>' +
+    ST.corr.slice(0, 25).map(c => '<tr><td>' + esc(c.corridor) + '</td><td><span class="chip ' + esc(c.trend) + '">' + esc(c.trend) + '</span></td><td>' + c.events_recent + '</td><td>' + c.events_prior + '</td><td>' + c.events_total + '</td><td>' + esc(c.top_drug) + '</td><td>' + c.avg_risk + '</td></tr>').join('') + '</table>' : '<div class="small">' + (none ? 'No corridors match the filters.' : 'No corridors with a known origin/destination yet.') + '</div>';
+  $('hot').innerHTML = ST.hot.length ? '<table><tr><th>Country</th><th>30d</th><th>Prev 30d</th><th>Total</th><th>High risk</th><th>Main drug</th><th>Main place</th></tr>' +
+    ST.hot.slice(0, 20).map(c => '<tr><td>' + esc(c.country) + '</td><td>' + c.events_recent + '</td><td>' + c.events_prior + '</td><td>' + c.events_total + '</td><td>' + c.high_risk + '</td><td>' + esc(c.top_drug) + '</td><td>' + esc(c.top_place) + '</td></tr>').join('') + '</table>' : '';
+}
+
+const detailText = e => [e.vessel && ('vessel ' + e.vessel), e.line && ('line ' + e.line), e.cover && ('cargo: ' + e.cover),
+  e.containers && ('container ' + e.containers), e.origin_place && ('from ' + e.origin_place), e.dest_place && ('to ' + e.dest_place)].filter(Boolean).join(' | ');
+// one seizure = one row; when several news articles report it they sit under one expandable tab
+const artCell = e => (e.arts && e.arts.length > 1)
+  ? '<details class="arts"><summary>' + e.n + ' news articles</summary><ul>' + e.arts.map(a => '<li><a href="' + esc(safe(a.u)) + '" target="_blank" rel="noopener noreferrer">' + esc(a.t || a.u) + '</a> <span class="small">(' + esc([a.o, a.d].filter(Boolean).join(', ')) + ')</span></li>').join('') +
+    (e.n > e.arts.length ? '<li class="small">+ ' + (e.n - e.arts.length) + ' more in the news article library below</li>' : '') + '</ul></details>'
+  : '<a href="' + esc(safe(e.url)) + '" target="_blank" rel="noopener noreferrer" title="' + esc(e.title_en || e.title) + '">news article</a>';
+const COLS = [['date','Date'],['url','News article'],['drug','Item'],['qty','Quantity'],['corridor','Route'],['country','Seized in'],['conceal','Concealment'],['detail','Details'],['transport','Transport'],['flags','Flags'],['n','Reports']];
+function evTable(v) {
+  const val = (e, k) => k === 'qty' ? (e.kg || 0) : k === 'corridor' ? (e.corridor || '') : k === 'detail' ? detailText(e) : (e[k] ?? '');
+  const s = v.slice().sort((a,b) => { const x = val(a, sortKey), y = val(b, sortKey); return (x > y ? 1 : x < y ? -1 : 0) * sortDir || (b.score - a.score); });
+  $('evCount').textContent = '(' + v.length + ' in view' + (v.length > 300 ? ', first 300 shown' : '') + ')';
+  $('evT').innerHTML = '<tr>' + COLS.map(c => '<th data-k="' + c[0] + '">' + c[1] + (sortKey === c[0] ? (sortDir > 0 ? ' &#9650;' : ' &#9660;') : '') + '</th>').join('') + '</tr>' +
+    s.slice(0, 300).map(e => '<tr' + (isWatched(e) ? ' class="watched"' : '') + '><td>' + esc(e.date) + '</td><td>' + artCell(e) + '<br><a href="#" class="dtl" data-id="' + e.id + '">checklist</a></td><td>' + esc(e.drug_label || e.drug) + '</td><td>' + esc(qty(e)) + '</td><td class="w2">' + esc(e.route || e.corridor || '') + '</td><td class="w2">' + esc([e.place, e.country].filter(Boolean).join(', ')) + '</td><td class="w2">' + esc(e.conceal || '') + '</td><td class="small w2">' + esc(detailText(e)) + '</td><td>' + esc(e.transport || '') + '</td><td class="small w3">' + esc(e.flags) + '</td><td>' + e.n + '</td></tr>').join('');
+  $('evT').querySelectorAll('th').forEach(th => th.onclick = () => { const k = th.dataset.k; if (k === 'url' || k === 'flags') return; sortDir = (sortKey === k) ? -sortDir : -1; sortKey = k; render(); });
+}
+
+
+function riskBox() {
+  const M = D.risk_model; if (!M) return;
+  let h = '<table class="rm"><tr><th>Dimension</th><th>What counts</th><th>Max</th></tr>';
+  M.dimensions.forEach(d => { h += '<tr><td><b>' + esc(d.name) + '</b></td><td>' + d.items.map(i => esc(i.label) + ' <b>+' + i.points + '</b>').join('<br>') + '</td><td>' + d.max + '</td></tr>'; });
+  h += '</table><p><b>Bands.</b> High = ' + M.high + ' or more, Medium = ' + M.medium + ' to ' + (M.high - 1) + ', Low = below ' + M.medium +
+    '. To be High an event must also show indicators in at least ' + M.min_high + ' of the three operational dimensions (concealment &amp; method, insiders &amp; organised crime, route); to be Medium, in at least ' + M.min_medium +
+    '. Scale and commodity alone can never raise an event, so a large seizure with no other warning signs stays low.</p>' +
+    '<p><b>Reading a score.</b> Tap a risk number in the table to open the event detail, with its score breakdown and an officer checklist, e.g. "Route 15/20". The Excel and CSV downloads carry the same breakdown per event.</p>' +
+    '<p><b>Source of the indicators.</b> They follow the Cargo Risk Indicators master list. Only the part of that list that a news article can reveal is used: how the goods were declared or documented, front or new companies, transshipment and free zones, route changes, repeat vessels or containers, intelligence-led finds, concealment and commodity. Pre-arrival data (manifests, payments, company registries) is not visible in news, so those indicators are not scored. Each dimension is capped, so no pile of weak signs can outweigh the rest.</p>' +
+    '<p><b>Watchlist.</b> ' + (M.watchlist_on ? 'A vessel, container or term on your watchlist forces an event to High, whatever its score.' : 'No watchlist is set. Names added under risk.watchlist in config.yaml force a matching event to High.') + ' <b>Data gaps.</b> Missing origin, destination, concealment or quantity are shown per event in the downloads as "Data gaps" and are never scored as risk.</p>' +
+    '<p><b>Limits.</b> Indicators come from automated reading of news text. A thorough article shows more indicators than a short one, so well-reported cases can score higher. Treat the score as a prompt to look, not a finding.</p>';
+  $('riskHow').innerHTML = h;
+}
+function render() {
+  alerts(); staticTables(); linksPanel(); chainPanel(); if (window.libRefresh) window.libRefresh();
+  const v = view();
+  kpis(v); timeChart(v);
+  hbar('cConc', topN(by(v.flatMap(e => e.conceal ? e.conceal.split('; ') : []), x => x), 10), '#2a6f97');
+  hbar('cCorr', topN(by(v, e => e.corridor), 10), '#12355b');
+  mode(v); matrix(v); coverLoad(v); coverAnalysis(v); evTable(v); drawMap(v); inferences(v); routeInferences(v);
+}
+
+// ---- "What this data suggests": a plain-language reading of the events in view, with a pie and a column chart
+function inferences(v) {
+  const n = v.length, pct = (a, b) => b ? Math.round(100 * a / b) : 0, L = [];
+  const share = (arr, f) => topN(by(arr, f), 99);
+  // charts
+  const items = share(v, e => e.drug_label && e.drug === 'NSA' ? 'NSA' : e.drug);
+  const top = items.slice(0, 6), rest = items.slice(6).reduce((s, x) => s + x[1], 0);
+  if (rest) top.push(['Other', rest]);
+  chart('cInfPie', {type: 'pie', data: {labels: top.map(x => x[0] + ' (' + pct(x[1], n) + '%)'), datasets: [{data: top.map(x => x[1]),
+    backgroundColor: top.map(x => x[0] === 'Other' ? '#b8c4d6' : col(x[0]))}]}, options: {plugins: {legend: {position: 'right', labels: {boxWidth: 12, font: {size: 11}}}}}});
+  const conc = topN(by(v.flatMap(e => e.conceal ? e.conceal.split('; ') : []), x => x), 7);
+  chart('cInfCol', {type: 'bar', data: {labels: conc.map(x => x[0].length > 22 ? x[0].replace(' (', '\n(').split('\n') : x[0]), datasets: [{label: 'Reports', data: conc.map(x => x[1]), backgroundColor: '#12355b'}]},
+    options: {plugins: {legend: {display: false}}, scales: {x: {ticks: {font: {size: 10}, maxRotation: 40, minRotation: 20}}, y: {beginAtZero: true}}}});
+  if (n < 5) { $('infList').innerHTML = '<li>Too few reports in this view to draw a pattern. Widen the period or clear a filter.</li>'; return; }
+  // 1 what
+  if (items[0]) L.push('<b>' + esc(items[0][0]) + '</b> makes up ' + pct(items[0][1], n) + '% of the reports' + (items[1] ? ', followed by ' + esc(items[1][0]) + ' (' + pct(items[1][1], n) + '%)' : '') +
+    '. Resource and intelligence priorities can follow this mix, but remember that news coverage favours large and unusual seizures.');
+  // 2 concealment
+  const withC = v.filter(e => e.conceal).length;
+  if (conc[0]) L.push('Concealment is stated in ' + pct(withC, n) + '% of reports. The most common method is <b>' + esc(conc[0][0]) + '</b>' + (conc[1] ? ', then ' + esc(conc[1][0]) : '') +
+    '. Examination training, scanner-image review and risk targeting are best focused on these methods first.');
+  const cover = v.filter(e => /legitimate cargo/i.test(e.conceal || '')).length;
+  if (pct(cover, n) >= 10) L.push(pct(cover, n) + '% of reports describe drugs hidden inside legitimate cargo (food, goods or a cover load). The shipper and consignee, and whether the goods fit the declared trade, deserve as much attention as the container itself.');
+  // 3 geography
+  const ctry = share(v, e => e.country), known = ctry.reduce((s, x) => s + x[1], 0);
+  if (ctry.length > 2) { const t3 = ctry.slice(0, 3); L.push('Seizures cluster in <b>' + t3.map(x => esc(x[0])).join(', ') + '</b> (' + pct(t3.reduce((s, x) => s + x[1], 0), known) + '% of reports with a known country). Strong partner-agency contacts and information exchange with these countries give the best return.'); }
+  const cor = share(v, e => e.corridor).filter(x => x[0]);
+  if (cor.length) L.push('The most repeated route is <b>' + esc(cor[0][0]) + '</b> (' + cor[0][1] + ' reports). Repeated routes are the best candidates for joint operations, controlled deliveries and pre-arrival risk rules.');
+  // 4 transport
+  const tr = share(v.filter(e => e.transport && e.transport !== 'Unknown'), e => e.transport);
+  if (tr.length) { const trn = tr.reduce((s, x) => s + x[1], 0); L.push('Where the transport mode is known, <b>' + esc(tr[0][0]) + '</b> is the most common (' + pct(tr[0][1], trn) + '%). Match inspection capacity, such as scanners, detector dogs and post and passenger screening, to that mode.'); }
+  // 5 networks and insiders
+  const org = v.filter(e => /Organised network/.test(e.flags || '')).length, ins = v.filter(e => e.insider).length;
+  if (org || ins) L.push((org ? pct(org, n) + '% of reports point to an organised network' : '') + (org && ins ? ' and ' : '') + (ins ? pct(ins, n) + '% to an insider (port, airport or customs staff)' : '') +
+    '. A seizure is often the start of an investigation: follow the consignee, forwarder and any access irregularities, and use the integrity channel where staff may be involved.');
+  // 6 trend, whole data (not the filter)
+  const today = new Date(D.meta.asof || fmt(new Date())), d30 = fmt(new Date(today.getTime() - 30 * 864e5)), d60 = fmt(new Date(today.getTime() - 60 * 864e5));
+  const a = D.events.filter(e => e.date > d30).length, b = D.events.filter(e => e.date > d60 && e.date <= d30).length;
+  if (b >= 30 && a / b > 3) L.push('The number of reports collected has grown a lot over recent weeks as more sources were added, so a 30-day trend would be misleading and is not shown. Use the alerts for real spikes.');
+  else if (b >= 30 && a / b >= 0.33) L.push('Across all data, reports in the last 30 days are ' + (a >= b ? 'up ' : 'down ') + Math.abs(pct(a - b, b)) + '% on the 30 days before (' + a + ' against ' + b + '). A rise can mean more trafficking, more enforcement or more coverage, so check the alerts before drawing a conclusion.');
+  L.push('Read these as leads, not findings: facts are read automatically from news reports and can be wrong, and every item needs verification through the source link and your own channels.');
+  $('infList').innerHTML = L.map(x => '<li style="margin:6px 0">' + x + '</li>').join('');
+}
+
+function routeInferences(v) {
+  const n = v.length, pct = (a, b) => b ? Math.round(100 * a / b) : 0, L = [];
+  const orig = topN(by(v, e => e.origin), 99), dest = topN(by(v, e => e.dest), 99), cor = topN(by(v, e => e.corridor), 99);
+  const ot = orig.slice(0, 6), orest = orig.slice(6).reduce((s, x) => s + x[1], 0), on = orig.reduce((s, x) => s + x[1], 0);
+  if (orest) ot.push(['Other', orest]);
+  const PAL = ['#12355b', '#2a6f97', '#2e8b57', '#e08a00', '#8e5bb5', '#c0392b', '#b8c4d6'];
+  chart('cRtPie', {type: 'pie', data: {labels: ot.map(x => x[0] + ' (' + pct(x[1], on) + '%)'), datasets: [{data: ot.map(x => x[1]), backgroundColor: ot.map((x, i) => x[0] === 'Other' ? '#b8c4d6' : PAL[i % 6])}]},
+    options: {plugins: {legend: {position: 'right', labels: {boxWidth: 12, font: {size: 11}}}}}});
+  const ct = cor.slice(0, 7);
+  chart('cRtCol', {type: 'bar', data: {labels: ct.map(x => x[0]), datasets: [{label: 'Reports', data: ct.map(x => x[1]), backgroundColor: '#2a6f97'}]},
+    options: {plugins: {legend: {display: false}}, scales: {x: {ticks: {font: {size: 10}, maxRotation: 40, minRotation: 20}}, y: {beginAtZero: true, ticks: {precision: 0}}}}});
+  if (n < 5 || !cor.length) { $('rtList').innerHTML = '<li>Too few reports with a stated route in this view to draw a pattern. Widen the period or clear a filter.</li>'; return; }
+  const withRoute = v.filter(e => e.corridor).length;
+  L.push('A route (origin and/or destination) is stated in ' + pct(withRoute, n) + '% of reports, so route findings describe only part of the picture. Where a route is known, it is the best starting point for pre-arrival risk rules.');
+  if (cor[0]) L.push('The most repeated route is <b>' + esc(cor[0][0]) + '</b> (' + cor[0][1] + ' reports)' + (cor[1] ? ', then ' + esc(cor[1][0]) + ' (' + cor[1][1] + ')' : '') + '. Repeated routes are the strongest candidates for joint operations, controlled deliveries and shared alerts between the countries on them.');
+  const top3 = cor.slice(0, 3).reduce((s, x) => s + x[1], 0), allc = cor.reduce((s, x) => s + x[1], 0);
+  L.push('The three busiest routes carry ' + pct(top3, allc) + '% of all reports with a route, ' + (pct(top3, allc) >= 40 ? 'so flows are concentrated and a few well-placed controls could reach much of the activity.' : 'so flows are spread over many routes and a single choke point is unlikely to catch most of it.'));
+  if (orig[0]) L.push('Most goods are reported as coming from <b>' + orig.slice(0, 3).map(x => esc(x[0])).join(', ') + '</b> (' + pct(orig.slice(0, 3).reduce((s, x) => s + x[1], 0), on) + '% of reports with a known origin). Early exchange with these origin countries, before the goods are loaded, gives the longest warning.');
+  if (dest[0]) L.push('The destinations named most are <b>' + dest.slice(0, 3).map(x => esc(x[0])).join(', ') + '</b>. Authorities in these countries can expect arrivals on the routes above and can check the receiving company, not only the goods.');
+  const tr = topN(by(v.flatMap(e => e.transit ? String(e.transit).split(/[|;] ?/) : []), x => x.trim()), 5), multi = v.filter(e => e.transit).length;
+  if (tr.length) L.push('<b>' + esc(tr.slice(0, 3).map(x => x[0]).join(', ')) + '</b> appear most as transit points (' + pct(multi, n) + '% of reports name a transit country). Hubs and transhipment ports on indirect routes are where a change of container or documents can happen, so they deserve extra attention.');
+  // new routes in the last 30 days that were not seen before (needs earlier history)
+  const today = new Date(D.meta.asof || fmt(new Date())), d30 = fmt(new Date(today.getTime() - 30 * 864e5));
+  const old = new Set(D.events.filter(e => e.date <= d30 && e.corridor).map(e => e.corridor));
+  const fresh = topN(by(D.events.filter(e => e.date > d30 && e.corridor && !old.has(e.corridor)), e => e.corridor), 3);
+  if (old.size >= 30 && fresh.length) L.push('Routes seen in the last 30 days but not before include <b>' + fresh.map(x => esc(x[0])).join(', ') + '</b>. New routes can mean displacement after enforcement elsewhere, or simply a new source of news, so check them against the alerts before acting.');
+  // route and transport
+  const sea = v.filter(e => e.corridor && /^Sea/.test(e.transport || '')).length, air = v.filter(e => e.corridor && /^(Air|Post)/.test(e.transport || '')).length, rd = v.filter(e => e.corridor && e.transport === 'Road').length;
+  const mx = Math.max(sea, air, rd);
+  if (mx > 4) L.push('On reports with a route, ' + (mx === sea ? 'sea freight' : mx === air ? 'air and post' : 'road transport') + ' is the most common way (' + pct(mx, withRoute) + '%). Put route-based targeting where that mode is handled: ' + (mx === sea ? 'ports, container terminals and shipping-line data.' : mx === air ? 'airports, express hubs and mail centres.' : 'border posts and trucking corridors.'));
+  L.push('Read these as leads, not findings: routes are read automatically from news reports, often from a short headline, and every route needs verification through the source link and your own channels.');
+  $('rtList').innerHTML = L.map(x => '<li style="margin:6px 0">' + x + '</li>').join('');
+}
+let infTab = 'c';
+function showInfTab(t) {
+  infTab = t;
+  document.querySelectorAll('#infCard .tabs button').forEach(b => b.classList.toggle('on', b.dataset.itab === t));
+  $('infC').hidden = t !== 'c'; $('infR').hidden = t !== 'r';
+  setTimeout(() => Object.values(charts).forEach(c => c.resize()), 0);
+}
+document.querySelectorAll('#infCard .tabs button').forEach(b => b.onclick = () => showInfTab(b.dataset.itab));
+// ---- route map (Leaflet; needs internet for the map tiles)
+const GEO = window.__SW.geo;
+const BC = {High:'#c0392b', Medium:'#e08a00', Low:'#2e8b57'};
+let map = null, mapLayer = null;
+// base maps: a coloured map by default (with our own bold, dark country names), with a switch for terrain, satellite and light grey
+function countryNames(m) {
+  const cnt = {}; D.events.forEach(e => { if (e.country) cnt[e.country] = (cnt[e.country] || 0) + 1; });
+  const names = Object.keys(GEO.c).sort((a, b) => (cnt[b] || 0) - (cnt[a] || 0));
+  if (!m.getPane('cnames')) { const pn = m.createPane('cnames'); pn.style.zIndex = 660; pn.style.pointerEvents = 'none'; }
+  const g = L.layerGroup(), all = [];
+  names.forEach((n, i) => { const c = GEO.c[n]; if (!c) return;
+    const mk = L.marker(c, {pane: 'cnames', interactive: false, keyboard: false, icon: L.divIcon({className: 'cname', html: '<span>' + esc(n) + '</span>', iconSize: [0, 0]})});
+    mk._rank = i; all.push(mk); });
+  const update = () => {                       // fewer names when zoomed out, all of them when zoomed in; map tiles name places from zoom 5
+    const z = m.getZoom(), lim = z <= 2 ? 45 : z === 3 ? 95 : 999;
+    g.clearLayers(); if (z < 5) all.forEach(mk => { if (mk._rank < lim) g.addLayer(mk); });
+  };
+  m.on('zoomend', update); update();
+  return g;
+}
+function addBase(m) {
+  const esri = (name, o) => L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/' + name + '/MapServer/tile/{z}/{y}/{x}', Object.assign({maxZoom: 16, attribution: 'Tiles &copy; Esri'}, o || {}));
+  const base = {
+    'Colour': L.layerGroup([esri('World_Terrain_Base', {className: 'tint', maxNativeZoom: 13}), esri('Reference/World_Boundaries_and_Places', {minZoom: 5}), countryNames(m)]),
+    'Terrain': esri('World_Topo_Map'),
+    'Satellite': L.layerGroup([esri('World_Imagery'), esri('Reference/World_Boundaries_and_Places')]),
+    'Light grey': esri('Canvas/World_Light_Gray_Base')
+  };
+  base['Colour'].addTo(m);
+  L.control.layers(base, null, {position: 'topright', collapsed: true}).addTo(m);
+}
+function pt(name, role, isPlace) {
+  if (!name) return null;
+  const p = isPlace ? GEO.p[name] : null;
+  if (p) return {c: [p[0], p[1]], role, name, cty: p[2], place: true};
+  const c = GEO.c[name] || (GEO.p[name] ? GEO.p[name].slice(0, 2) : null);
+  return c ? {c, role, name, cty: name, place: false} : null;
+}
+function eventPoints(e) {
+  const out = [];
+  const add = q => {
+    if (!q) return;
+    const last = out[out.length - 1];
+    if (last && last.cty === q.cty) {              // same country as the previous stop: keep one point
+      if (q.role === 'seizure' || (q.place && !last.place)) out[out.length - 1] = Object.assign({}, q, {role: q.role === 'seizure' ? 'seizure' : last.role});
+      return;
+    }
+    out.push(q);
+  };
+  add(pt(e.origin, 'origin'));
+  (e.transit || '').split(';').map(x => x.trim()).filter(Boolean).forEach(t => add(pt(t, 'transit')));
+  add((e.place && pt(e.place, 'seizure', true)) || pt(e.country, 'seizure'));
+  add(pt(e.dest, 'dest'));
+  if (!out.length && e.approx) {          // no place named: put it at the news outlet's country, marked approximate
+    const q = pt(e.approx, 'seizure');
+    if (q) out.push(Object.assign(q, {approx: true, name: e.approx}));
+  }
+  return out;
+}
+function arc(a, b) {
+  let lon2 = b[1]; const d = lon2 - a[1];
+  if (d > 180) lon2 -= 360; else if (d < -180) lon2 += 360;
+  const p0 = [a[0], a[1]], p2 = [b[0], lon2], dl = p2[0] - p0[0], dn = p2[1] - p0[1];
+  if (Math.abs(dl) + Math.abs(dn) < 0.6) return [p0, p2];
+  const c = [(p0[0] + p2[0]) / 2 - 0.18 * dn, (p0[1] + p2[1]) / 2 + 0.18 * dl], pts = [];
+  for (let i = 0; i <= 24; i++) { const t = i / 24, u = 1 - t; pts.push([u*u*p0[0] + 2*u*t*c[0] + t*t*p2[0], u*u*p0[1] + 2*u*t*c[1] + t*t*p2[1]]); }
+  return pts;
+}
+function popupHtml(e) {
+  return '<b>' + esc(e.title_en || e.title) + '</b><br>' + esc(e.date) + ' | ' + esc(e.drug) + (qty(e) ? ' | ' + esc(qty(e)) : '') +
+    '<br>' + esc(e.route || e.corridor || '') + (detailText(e) ? '<br><span class="small">' + esc(detailText(e)) + '</span>' : '') + '<br><a href="' + esc(safe(e.url)) + '" target="_blank" rel="noopener noreferrer">open article</a>';
+}
+function drawMap(v) {
+  if (typeof L === 'undefined') { $('map').innerHTML = '<div class="small" style="padding:20px">The map library could not load (no internet?).</div>'; return; }
+  if (!map) {
+    map = L.map('map', {worldCopyJump: true, minZoom: 1, scrollWheelZoom: false}).setView([20, 10], 2);
+    addBase(map);
+    mapLayer = L.layerGroup().addTo(map);
+  }
+  mapLayer.clearLayers();
+  const ev = v.slice().sort((a, b) => b.score - a.score).slice(0, 500);
+  const bounds = [], groups = {}; let routes = 0;
+  ev.forEach(e => {
+    const col = BC[e.band] || '#666', pts = eventPoints(e);
+    if (!pts.length) return;
+    pts.forEach(q => bounds.push(q.c));
+    const s = pts.find(q => q.role === 'seizure');
+    if (s) { const k = (s.approx ? 'a' : '') + s.c[0] + ',' + s.c[1];
+             (groups[k] = groups[k] || {c: s.approx ? [s.c[0] - 1.2, s.c[1] + 1.2] : s.c, name: s.name, approx: !!s.approx, evs: []}).evs.push(e); }
+    if (pts.length > 1) {
+      routes++;
+      const w = 1.5 + Math.min(3.5, Math.log10((e.kg || 0) + 1));
+      for (let i = 0; i < pts.length - 1; i++) {
+        const path = arc(pts[i].c, pts[i + 1].c);
+        L.polyline(path, {color: col, weight: w, opacity: 0.6, interactive: false}).addTo(mapLayer);
+        L.polyline(path, {color: col, weight: 18, opacity: 0.01}).bindPopup(popupHtml(e)).addTo(mapLayer);   // wide invisible line = easy to tap
+        const n = path.length, a = path[Math.max(0, n - 4)], b = path[n - 1];
+        const ang = Math.atan2((b[1] - a[1]) * Math.cos(b[0] * Math.PI / 180), b[0] - a[0]) * 180 / Math.PI;
+        L.marker(path[n - 3] || b, {interactive: false, keyboard: false, icon: L.divIcon({className: 'arrowicon', iconSize: [12, 12], iconAnchor: [6, 6],
+          html: '<div style="transform:rotate(' + ang.toFixed(0) + 'deg);color:' + col + ';font-size:12px;line-height:12px;text-align:center">&#9650;</div>'})}).addTo(mapLayer);
+      }
+    }
+    pts.filter(q => q.role !== 'seizure').forEach(q => {
+      const o = q.role === 'origin' ? {radius: 5, color: col, weight: 2, fillColor: '#fff', fillOpacity: 1}
+        : q.role === 'dest' ? {radius: 5, color: '#fff', weight: 1, fillColor: '#12355b', fillOpacity: 1}
+        : {radius: 4, color: '#666', weight: 1, fillColor: '#bbb', fillOpacity: 1};
+      L.circleMarker(q.c, o).bindTooltip(esc(q.name) + ' (' + (q.role === 'dest' ? 'destination' : q.role) + ')').bindPopup(popupHtml(e)).addTo(mapLayer);
+    });
+  });
+  // one dot per place; the number is how many reports are there; tap it to list them
+  Object.values(groups).forEach(g => {
+    const n = g.evs.length, list = g.evs.slice().sort((a, b) => b.score - a.score);
+    const rank = list.reduce((m, e) => Math.max(m, e.band === 'High' ? 3 : e.band === 'Medium' ? 2 : 1), 1);
+    const col = rank === 3 ? BC.High : rank === 2 ? BC.Medium : BC.Low, size = Math.round(22 + Math.min(16, 4 * Math.sqrt(n)));
+    const icon = L.divIcon({className: 'seizdot', iconSize: [size, size], iconAnchor: [size / 2, size / 2],
+      html: g.approx
+        ? '<div style="width:' + size + 'px;height:' + size + 'px;border-radius:50%;background:#fff;border:2px dashed ' + col + ';box-shadow:0 0 0 1px rgba(0,0,0,.15);' +
+          'color:' + col + ';font:700 11px/' + (size - 4) + 'px sans-serif;text-align:center">' + (n > 1 ? n : '') + '</div>'
+        : '<div style="width:' + size + 'px;height:' + size + 'px;border-radius:50%;background:' + col + ';border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.3);' +
+          'color:#fff;font:700 11px/' + (size - 4) + 'px sans-serif;text-align:center">' + (n > 1 ? n : '') + '</div>'});
+    const html = '<b>' + esc(g.name) + '</b> - ' + n + ' report' + (n > 1 ? 's' : '') +
+      (g.approx ? '<div class="small">Approximate: the report names no place, so it is shown in the country of the news outlet.</div>' : '') + '<div class="plist">' +
+      list.slice(0, 12).map(e => '<div class="pi"><span class="chip ' + esc(e.band) + '">' + e.score + '</span> ' + esc(e.date) + ' | ' + esc(e.drug) + (qty(e) ? ' (' + esc(qty(e)) + ')' : '') +
+        (e.route || e.corridor ? '<br><span class="small">' + esc(e.route || e.corridor) + '</span>' : '') +
+        '<br>' + esc((e.title_en || e.title || '').slice(0, 110)) + ' <a class="pop-open" href="' + esc(safe(e.url)) + '" target="_blank" rel="noopener noreferrer">open</a></div>').join('') +
+      (n > 12 ? '<div class="small">+ ' + (n - 12) + ' more, see the events table</div>' : '') + '</div>';
+    L.marker(g.c, {icon, riseOnHover: true}).bindPopup(html, {maxWidth: 320}).addTo(mapLayer);
+  });
+  const noPlace = v.filter(e => !eventPoints(e).length).length;   // nothing named that the map can place
+  const approxN = v.filter(e => { const p = eventPoints(e); return p.length && p[0].approx; }).length;
+  $('mapNote').textContent = '(' + routes + ' routes, ' + Object.keys(groups).length + ' places with seizures' + (v.length > 500 ? '; top 500 by risk shown' : '') +
+    (approxN ? '; ' + approxN + ' placed approximately (dashed)' : '') +
+    (noPlace ? '; ' + noPlace + (noPlace === 1 ? ' seizure has' : ' seizures have') + ' no place named and ' + (noPlace === 1 ? 'is' : 'are') + ' listed in the table only' : '') + ')';
+  setTimeout(() => { map.invalidateSize(); if (bounds.length) map.fitBounds(bounds, {padding: [30, 30], maxZoom: 5}); else map.setView([20, 10], 2); }, 50);
+}
+// ---- coverage map: where the tool can and cannot see
+let cmap = null;
+function drawCoverage() {
+  const cov = D.coverage;
+  if (!cov) { $('cmap').style.display = 'none'; return; }
+  const searched = new Set(cov.searched), name = c => cov.names[c] || c;
+  const counts = {}; D.events.forEach(e => { if (e.country) counts[e.country] = (counts[e.country] || 0) + 1; });
+  const rows = Object.keys(cov.countries).map(c => {
+    const v = cov.countries[c], n = counts[c] || 0, seen = v.langs.some(l => searched.has(l));
+    return {c, n, seen, official: v.official, langs: v.langs, status: n ? 'found' : seen ? 'quiet' : 'blind'};
+  });
+  const nf = rows.filter(r => r.status === 'found').length, nq = rows.filter(r => r.status === 'quiet').length, blind = rows.filter(r => r.status === 'blind');
+  $('covNote').textContent = '(' + nf + ' with reports, ' + nq + ' quiet, ' + blind.length + ' blind)';
+  $('covText').textContent = 'Languages searched: ' + cov.searched.map(name).join(', ') + '. A quiet country may simply have no seizure news, or the reports may be in a source or place the tool does not reach. A blind country cannot appear at all, whatever happens there. Only countries the tool knows (' + rows.length + ') are shown.';
+  $('blindN').textContent = blind.length + ' countries';
+  $('blindList').innerHTML = blind.sort((a, b) => a.c.localeCompare(b.c)).map(r => esc(r.c) + ' <span class="small">(' + esc(r.langs.map(name).join(', ')) + ')</span>').join(' &middot; ') || 'none';
+  const byLang = {}; D.events.forEach(e => { const k = e.lang || 'unknown'; byLang[k] = (byLang[k] || 0) + 1; });
+  $('langList').innerHTML = '<table class="mini">' + Object.keys(byLang).sort((a, b) => byLang[b] - byLang[a]).map(k => '<tr><td>' + esc(name(k)) + '</td><td><b>' + byLang[k] + '</b></td></tr>').join('') + '</table>' +
+    '<div class="small">Languages searched with no reports so far: ' + (cov.searched.filter(l => !byLang[l]).map(name).join(', ') || 'none') + '</div>';
+  if (typeof L === 'undefined') { $('cmap').innerHTML = '<div class="small" style="padding:20px">The map library could not load (no internet?).</div>'; return; }
+  if (!cmap) {
+    cmap = L.map('cmap', {worldCopyJump: true, minZoom: 1, scrollWheelZoom: false}).setView([25, 15], 2);
+    addBase(cmap);
+  }
+  const col = {found: '#2e8b57', quiet: '#e0a800', blind: '#c0392b'};
+  rows.forEach(r => {
+    const c = GEO.c[r.c]; if (!c) return;
+    L.circleMarker(c, {radius: r.status === 'found' ? Math.min(18, 6 + 3 * Math.log2(1 + r.n)) : 6, color: r.official ? '#12355b' : '#fff', weight: r.official ? 3 : 1,
+      fillColor: col[r.status], fillOpacity: 0.85})
+      .bindTooltip(esc(r.c) + ': ' + (r.status === 'found' ? r.n + ' report' + (r.n > 1 ? 's' : '') : r.status === 'quiet' ? 'no reports' : 'blind') + '<br>main languages: ' + esc(r.langs.map(name).join(', ')) + (r.official ? '<br>official website searched' : '')).addTo(cmap);
+  });
+  setTimeout(() => cmap.invalidateSize(), 50);
+}
+// ---- "What to look for" cards
+var cardFilter = null, cardName = '';
+const CONCEAL_CARDS = [{"id":"food","t":"Hidden in food and produce cargo","key":"Legitimate cargo (food/produce)","s":"Drugs packed in or among ordinary fresh, frozen or dry food cargo, mostly in sea containers and often reefers.","look":["Cargo, shipper or origin that does not fit the company's usual business, or a first or one-off shipment","A few cartons or pallets that differ from the rest: different packaging, weight, tape, printing or stacking","Loads that are unusually well presented at the doors but poorly packed behind","Reefer settings or ventilation that do not suit the declared goods, or settings changed on the way","Seal changes, seal numbers that do not match the documents, or an unexplained long stay in a port or yard"],"check":["Compare the scan image with the declared goods: look for density anomalies, voids and dense organic material inside produce","Compare the weight with the declared and verified gross mass","Have a detector dog sweep the whole load, not only the doors, and take samples","Examine the reefer unit and its surroundings (see 'Container structure')"],"note":"Drugs may be loaded into a container without the shipper or consignee knowing (insiders at a port, or a container opened after sealing). Report the facts and do not assume intent."},{"id":"industrial","t":"Hidden in industrial goods and cover loads","key":"Legitimate cargo (industrial/goods)","s":"Drugs hidden in or behind ordinary goods such as timber, machinery, tiles, scrap or textiles, or in a 'cover load' placed to hide the real cargo.","look":["Vague descriptions ('general goods', 'spare parts') that do not match the packaging or weight","Goods with hollow parts or thick walls (machinery, pipes, furniture, ceramics, tyres) where a small load is easy to hide","Visible goods at the front or doors that look better packed than the rest","Goods with no obvious market at the destination, or a consignee with no trade history in them","Fresh glue, paint, sealant, foam, solder or welding on goods that should be untouched"],"check":["Scan and compare items of the same type: a single heavier or denser item is a lead","Check the tariff code, description and value against each other, and check the shipper and consignee's business","Open or drill a sample of hollow items under your procedures","In consolidated (LCL) loads, check every consignment in the container, not just the first"],"note":"A cover load is a legal cargo used to hide another. Finding the legal cargo in order does not clear the rest of the container."},{"id":"container","t":"Container structure and reefer units","key":"Container structure / false compartment","s":"Drugs hidden in the walls, roof, floor or doors of a container, or inside a refrigeration unit.","look":["Signs of alteration: fresh paint or weld, new rivets or bolts, mismatched panel colours, filler or sealant marks","Doors with new or replaced seals, handles or bolts","A reefer unit with loose or newly fixed panels, disturbed oil or grease, or running when the cargo does not need cooling","Inside length shorter than outside length, or a floor or wall thicker than it should be","A container whose age, condition or owner code does not fit its shipping line or history"],"check":["Measure inside and outside and compare","Sound-test walls and floor, use a density meter or fibre scope, and give the structure a focused scan","Check the container number, check digit and owner code, and its movement history","Photograph everything before opening anything"],"note":"Reefer units carry live electrics and refrigerant, and containers may hold fumigation gas. Follow safety procedures and use protective equipment."},{"id":"vehicle","t":"Vehicle compartments","key":"Vehicle compartment","s":"Drugs hidden in a vehicle: spare tyre, fuel tank, chassis, dashboard, door panels or a built compartment in a truck or trailer.","look":["Recent repairs: new bolts or screws, mismatched paint or trim, disturbed underseal","A vehicle that is heavier than it should be, sits low, or smells of glue, paint or strong air freshener","Fuel tank that holds less than its rated capacity, or spare wheel that does not fit its housing","A journey that does not fit: newly bought or registered vehicle, repeated crossings on the same route, documents produced late","Load that does not suit the vehicle, such as light cargo in a heavy truck"],"check":["Use the vehicle scanner and a detector dog","Use a fibre scope and check tank capacity and weight","Remove panels only as your procedures allow","Compare the vehicle's declared route and load with the crossing and registration history"],"note":"No single indicator proves anything. Two or three together are worth a full examination."},{"id":"hidden","t":"Hidden compartment (type not stated)","key":"Hidden compartment (unspecified)","s":"Reports mention a false floor, secret compartment or 'double bottom' without saying whether it was in a vehicle, container or object.","look":["Open the linked report and identify what was modified: vehicle, container, luggage or goods","Then use the matching card. Modified cargo spaces share the same signs: fresh work, extra weight, mismatched dimensions"],"check":["Read the source article to find the type and the route","Record the modification method: it can help spot repeat use"],"note":"This category exists because news reports are often vague. Treat it as a pointer to read the report."},{"id":"body","t":"Concealed on or inside a person","key":"Body concealment","s":"Drugs swallowed, or carried in body packs or on the body, mostly by air passengers.","look":["Itinerary: last-minute one-way or short-stay ticket, cash payment, tickets bought by someone else, routing through a hub that does not suit the trip","Story that does not hold together: purpose, accommodation, funds or contacts","Very little luggage for the stated stay, or new empty luggage","Behaviour such as reluctance to eat or drink, or apparent illness"],"check":["Use only the searches and scans your law allows, and follow your medical procedures","If someone may have swallowed drugs and feels unwell, treat it as a medical emergency first: packages can leak","Record the full itinerary and how the ticket was paid for, which helps trace organisers"],"note":"Base decisions on itinerary and behaviour, never on nationality, ethnicity, gender or appearance. Treat travellers with dignity, and remember many may be victims of coercion."},{"id":"postal","t":"Post, parcels and express couriers","key":"Postal / parcel","s":"Drugs sent in letters, parcels or express shipments, often in small quantities and often ordered online.","look":["Sender or addressee details that are false or incomplete, or several parcels to one address or from one sender under different names","Description does not match weight or packaging: heavy 'clothes', 'books' or 'gifts', or layers of tape, foil, vacuum wrap or carbon paper","Origin or routing typical of the drug type (for example synthetic drugs and new psychoactive substances via known hubs)","Prepaid or unusual payment, pick-up points, lockers or re-shipping addresses"],"check":["X-ray, detector dogs, and portable spectrometers or test kits","Coordinate with the postal or courier operator and use track and trace","Consider a controlled delivery where the law allows"],"note":"Very potent substances such as fentanyl analogues are dangerous in tiny amounts. Use protective equipment and never open or sniff suspect items unprotected."},{"id":"luggage","t":"Luggage and passenger goods","key":"Luggage / passenger goods","s":"Drugs hidden in suitcases, bags or personal goods, including false bottoms, lined bags and sealed gift items.","look":["A bag heavier than its contents explain, with a stiff base, glued lining or a chemical smell","Bags that are new, empty-looking or unusually large for the stay","Bulk purchases of sealed goods such as tins, cosmetics or food","Tag or ownership problems, multiple bags for a short stay, or unclaimed bags","Itinerary indicators as under 'Concealed on a person'"],"check":["X-ray with attention to dense layers and uniform panels","Targeted search, detector dog and surface swab (ion scan)","Weigh the empty bag when possible and compare"],"note":"Bags can be passed to a traveller without their knowledge. Record how the bag was packed and who handled it."},{"id":"impreg","t":"Impregnated, liquid or disguised drugs","key":"Impregnation / liquid / disguised","s":"Drugs dissolved in liquids, soaked into materials such as cloth, paper or plastic, or moulded to look like ordinary objects.","look":["Goods with a chemical, solvent or perfume smell, or that feel stiff, damp, heavy or oddly coloured","Ordinary items shaped as something else (moulded 'objects', fruit-shaped items, pipes)","Quantities of one material with no plausible commercial use, or repeated shipments of the same product","Liquid goods in unusual containers, such as wine or oil with mismatched labels"],"check":["Field test kits on samples, and laboratory analysis when a test is positive or unclear","Remember that scanners and dogs may miss impregnated material, so rely on tests and intelligence","Photograph and retain the packaging"],"note":"Chemical safety comes first: use protective equipment and ventilation when sampling."},{"id":"hull","t":"Vessel hulls and underwater attachments","key":"Vessel hull / underwater","s":"Drugs attached to a ship's hull, in a sea chest or rudder area, carried in towed packages, or moved by semi-submersibles.","look":["Unexplained hull work, new welds, patches or attachments below the waterline","Divers or small boats near a ship at berth, or a vessel waiting away from its berth","A voyage history including calls in source regions, route changes, long stops, gaps in AIS tracking or crew changes","Small craft far offshore without fishing gear, with extra fuel drums or long radio silence"],"check":["Hull inspection by divers or a remote vehicle, and a sonar sweep","Sea chest inspection in port","Share information with the port of the previous call, the coast guard and the navy"],"note":"Diving is dangerous. Use trained teams. Drugs attached to a hull are often meant to be recovered outside the port."}];
+const ROUTE_CARDS = [{"id":"sa_eu","t":"South America to Europe: cocaine in sea containers","s":"Cocaine shipped in containers from South American ports to large European ports, or to transhipment hubs and then onward.","concealed":["food","industrial","container"],"look":["Container loaded in a South American port for a European destination, with produce or timber, and a shipper or consignee that is new or has a small footprint","Late changes to the consignee, destination or routing, or containers moved or discharged at an intermediate port","Seal replaced or a container not collected promptly by the consignee, or collected by unfamiliar hauliers on short-notice authorisation","Container with an unexplained long stay at the terminal, or opened outside normal inspection"],"check":["Risk-target the whole chain: loading port, transhipment ports and routing","Use advance cargo information and the consignment history of the shipper and consignee","Alert the loading port and the ports of transhipment when you find something, so the network can be traced"],"note":"Large seizures often follow intelligence and a scan. Share the container history rather than waiting for the case to close."},{"id":"wa","t":"West Africa as origin or transit for cocaine","s":"Cocaine moved through West African ports, airports and roads on the way to Europe, or brought in from South America.","concealed":["industrial","food","luggage"],"look":["Consignments and passengers from or through West African ports and airports, especially with a cargo type that does not fit the seller's business","Used vehicles, timber, cocoa or general cargo with unclear ownership","Many small consignments or couriers, and short-notice route changes","Cases where an arrest or seizure in one country follows a shipment loaded in another"],"check":["Compare the routing history for the consignment and party, not for the country alone","Check the last port or airport of call in the passenger or cargo data","Share findings with the country of loading; many links only appear across borders"],"note":"A country appearing in the data reflects where reports come from, and is not a judgement about its agencies."},{"id":"carib","t":"Caribbean and Central America: transit for cocaine","s":"Cocaine moving through the Caribbean and Central America to North America and Europe by sea containers, small craft, and air.","concealed":["food","industrial","hull"],"look":["Containers or vessels calling at Caribbean or Central American ports before a European or US destination","Small craft such as go-fast boats or fishing vessels far from usual fishing grounds","Consignments re-routed through a transhipment port without a commercial reason","Air passengers on connecting flights through regional hubs"],"check":["Track transhipment and re-routing in the cargo data","Coordinate with the coast guard and navy for small craft","Check the sequence of ports and dwell time for containers"],"note":"Vessel movement and container tracking data are as valuable here as the goods themselves."},{"id":"courier","t":"Air couriers on passenger routes","s":"Individuals carrying drugs on passenger flights, in luggage or on the body, often on long-haul routes through connecting hubs.","concealed":["luggage","body","postal"],"look":["One-way or short-stay ticket, paid in cash or by a third party, sometimes bought at the last moment","Routing through several hubs, or a route that does not fit the stated purpose","Little luggage for the stay, or a new bag, and travel story that does not match documents","Several travellers on the same itinerary with a common contact or payment"],"check":["Use passenger information and previous travel records to target","Apply the search powers and medical procedures your law provides","Record ticket and payment details, phone data and contacts within the law: they lead to organisers"],"note":"Use patterns of itinerary and behaviour only. Never target by nationality, ethnicity or appearance, and remember some couriers are exploited or coerced."},{"id":"heroin","t":"Opiates: south-west Asia to Gulf, Africa and Europe","s":"Heroin and opium moving from Afghanistan and neighbouring countries to markets by land, sea and air, with routes through the Gulf and East Africa.","concealed":["industrial","vehicle","luggage"],"look":["Consignments from or via Afghanistan, Pakistan or Iran, or through Gulf and East African ports","Dhows and small vessels in the Indian Ocean, or containers with mixed cargo from the region","Vehicles crossing land borders with modified compartments","Payments and documents involving traders with no history in the declared goods"],"check":["Target by route and party as well as by cargo type","Check maritime routing and stops through Indian Ocean ports","Use vehicle scanning and detector dogs at land crossings"],"note":"Precursor chemicals such as acetic anhydride move in the opposite direction and are also worth watching."},{"id":"captagon","t":"Captagon: Levant to the Gulf","s":"Amphetamine-type tablets sold as captagon, produced mainly in and around the Levant and moved to Gulf markets by sea, road and air.","concealed":["industrial","impreg","food"],"look":["Large volumes of tablets hidden in goods such as fruit, plastic pipes, machinery, or other legal cargo","Shipments from or through Levant ports or land borders to Gulf destinations","Consignments where the product and packaging do not match the shipper's normal trade","Repeated seizures of the same product type or packaging: they can link cases"],"check":["Record tablet markings, packaging and concealment method: they help match cases","Scan and sample bulk cargo for density anomalies","Share details with neighbouring customs services quickly"],"note":"Tablets can be found in very large numbers. Count and weigh both, and record the batch markings."},{"id":"gt","t":"Synthetic drugs: Golden Triangle to Asia-Pacific","s":"Methamphetamine and other synthetic drugs made in and around Myanmar, Thailand and Laos and moved to markets across Asia and the Pacific.","concealed":["impreg","industrial","postal"],"look":["Consignments from or through the Golden Triangle to Asia-Pacific destinations, by sea, air freight or post","Drugs hidden in consumer packaging such as tea, coffee or snack packets, or inside industrial goods","Fast-changing routes, including transit through Southeast Asian ports and hubs","Very large seizures at sea or at ports, often after intelligence"],"check":["Use intelligence sharing with regional partners and joint operations","Target sea freight from source-region ports and air cargo and post","Check packaging for consistent marks that link seizures"],"note":"Traffickers change packaging and routes quickly. Keep packaging photographs so cases can be linked."},{"id":"mx","t":"Mexico and the US: methamphetamine and synthetic opioids","s":"Methamphetamine, fentanyl and related drugs crossing the border, in vehicles and cargo, and moving through ports in Mexico.","concealed":["vehicle","industrial","luggage"],"look":["Vehicles with hidden compartments at land crossings, especially with frequent crossings or a route that does not fit the load","Cargo through Mexican Pacific ports with chemical or industrial goods","Small, dense, high-value packages","Pill presses, chemicals and precursors in the same consignment or in separate flows"],"check":["Scan and use detector dogs, and use trace and portable identification tools with protective equipment","Check the documents of the vehicle and load, and its crossing history","Watch precursor chemical shipments, not only finished drugs"],"note":"Fentanyl-type drugs are dangerous to handle. Use protective equipment and follow safe-handling rules."},{"id":"cannabis","t":"Cannabis and hashish in and around Europe","s":"Bulk cannabis and hashish moving by road and sea, including across the Strait of Gibraltar, and cannabis shipped by air and post to distant markets.","concealed":["vehicle","industrial","postal"],"look":["Bulk loads in trucks and vans from Iberia and North Africa, hidden behind or within produce or general cargo","Small craft and cargo boats crossing short sea routes","Air freight and post from cannabis-legal jurisdictions to countries where it is banned, with vague descriptions","Strong odour masked with other products"],"check":["Use vehicle scanners and detector dogs","Check driver and vehicle documents against the declared load","Check parcel origin and description mismatches"],"note":"Cannabis laws differ. Check the legal situation of origin and destination when advising."},{"id":"hubs","t":"Transit hubs (air and sea)","s":"Big hubs such as Dubai, Istanbul, Doha, Addis Ababa, Johannesburg and Bangkok appear on many routes because goods and passengers change carriers there.","concealed":["luggage","body","industrial"],"look":["Consignments or passengers whose route passes through a hub without a commercial or personal reason","Re-export or re-labelling in free zones, and containers changing documents in a hub","Connecting itineraries with short layovers and tickets paid in cash","The same hub repeating in unrelated cases: it can indicate a service used by a network"],"check":["Check the last airport or port of call in the passenger and cargo data","Exchange information with the hub's customs service using your usual channels","Look at re-export documents in free zones"],"note":"Hubs are legitimate transit points for vast legal trade. Use hub appearances to add weight to other indicators, not as an indicator on their own."},{"id":"tobacco","t":"Illicit cigarettes in sea containers","s":"Cigarettes moved by sea container, usually mis-declared or hidden behind legal cargo, often through free zones and several countries.","concealed":["industrial","food"],"look":["Containers declared as another product but heavy for their declared contents","Routes through free zones and multiple transhipment ports","Consignee or shipper new or with no trade in tobacco or with an address that does not exist","Pallets at the rear or behind legal cargo"],"check":["Compare declared and measured weight, and scan for uniform dense blocks","Check the route and documents across the whole chain","Check the excise or transit documents"],"note":"Cigarettes are counted in packs and sticks. The tool leaves them out of the total weight."}];
+const RG = {
+  sa: ['Colombia','Ecuador','Peru','Bolivia','Brazil','Venezuela','Paraguay','Argentina','Chile','Uruguay','Suriname','Guyana','French Guiana'],
+  eu: ['Belgium','Netherlands','Spain','Portugal','France','Germany','Italy','United Kingdom','Ireland','Poland','Bulgaria','Romania','Greece','Croatia','Slovenia','Denmark','Sweden','Norway','Finland','Austria','Czech Republic','Hungary','Serbia','Albania','Malta','Cyprus','Lithuania','Latvia','Estonia','Slovakia','Switzerland','Luxembourg','Bosnia and Herzegovina','Montenegro','North Macedonia','Kosovo','Moldova','Ukraine','Iceland'],
+  wa: ['Ghana','Nigeria','Senegal','Guinea','Guinea-Bissau','Sierra Leone','Liberia','Ivory Coast','Togo','Benin','Cape Verde','Gambia','Mali','Mauritania','Burkina Faso','Niger','Cameroon'],
+  carib: ['Guatemala','Honduras','El Salvador','Nicaragua','Costa Rica','Panama','Jamaica','Dominican Republic','Haiti','Trinidad and Tobago','Bahamas','Cuba','Puerto Rico','Curacao','Martinique','Guadeloupe'],
+  levant: ['Syria','Lebanon','Jordan','Iraq','Turkey'],
+  gulf: ['United Arab Emirates','Saudi Arabia','Qatar','Kuwait','Bahrain','Oman','Yemen'],
+  gt: ['Myanmar','Thailand','Laos'],
+  apac: ['Australia','New Zealand','Japan','South Korea','Taiwan','Hong Kong','Philippines','Indonesia','Malaysia','Singapore','Thailand','Vietnam','Cambodia','Laos','Myanmar','China','Papua New Guinea'],
+  hubp: ['Dubai','Istanbul','Doha','Addis Ababa','OR Tambo / Johannesburg','Bangkok','Jebel Ali','Abu Dhabi','Hong Kong airport'],
+  hubc: ['United Arab Emirates','Qatar','Turkey','Ethiopia']
+};
+Object.keys(RG).forEach(k => RG[k] = new Set(RG[k]));
+const stops = e => [e.origin, e.dest, e.country, ...String(e.transit || '').split(';').map(x => x.trim())];
+const touches = (e, set) => stops(e).some(x => set.has(x));
+const transitIn = (e, set) => String(e.transit || '').split(';').some(x => set.has(x.trim()));
+const ROUTE_PRED = {
+  sa_eu: e => e.drug === 'Cocaine' && RG.sa.has(e.origin) && (RG.eu.has(e.dest) || RG.eu.has(e.country)),
+  wa: e => e.drug === 'Cocaine' && touches(e, RG.wa),
+  carib: e => e.drug === 'Cocaine' && touches(e, RG.carib),
+  courier: e => /^Air/.test(e.transport || '') && /Luggage|Body/.test(e.conceal || ''),
+  heroin: e => e.drug === 'Heroin/Opium',
+  captagon: e => /captagon/i.test((e.title_en || e.title || '')) || (e.drug === 'NSA' && touches(e, RG.levant) && touches(e, RG.gulf)),
+  gt: e => (e.drug === 'Methamphetamine' || e.drug === 'NSA') && (RG.gt.has(e.origin) || transitIn(e, RG.gt)) && (RG.apac.has(e.dest) || RG.apac.has(e.country)),
+  mx: e => ['Methamphetamine', 'NSA', 'Heroin/Opium'].includes(e.drug) && [e.origin, e.dest, e.country].includes('Mexico') && [e.origin, e.dest, e.country].includes('United States'),
+  cannabis: e => e.drug === 'Cannabis',
+  hubs: e => RG.hubp.has(e.place) || transitIn(e, RG.hubc),
+  tobacco: e => e.drug === 'Cigarettes'
+};
+const CONCEAL_PRED = c => e => (e.conceal || '').split('; ').includes(c.key);
+let lookTab = 'c';
+
+function cardText(c, kind) {
+  return c.t + '\n' + c.s + '\n\nLook for:\n- ' + c.look.join('\n- ') + '\n\nCheck:\n- ' + c.check.join('\n- ') + '\n\nNote: ' + c.note +
+    '\n\n(Seizure Watch indicator card - general guidance, not official PCCP or WCO material.)';
+}
+function renderLook() {
+  document.querySelectorAll('#lookCard .tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === lookTab));
+  const list = lookTab === 'c' ? CONCEAL_CARDS : ROUTE_CARDS;
+  $('lookList').innerHTML = list.map(c => {
+    const pred = lookTab === 'c' ? CONCEAL_PRED(c) : ROUTE_PRED[c.id], n = D.events.filter(pred).length;
+    return '<details class="lk" data-id="' + c.id + '"><summary><b>' + esc(c.t) + '</b><span class="cnt">' + n + ' report' + (n === 1 ? '' : 's') + ' in the data</span><span class="lks">' + esc(c.s) + '</span></summary><div class="lkb">' +
+      (c.concealed ? '<div class="small">Often hidden by: ' + c.concealed.map(id => { const cc = CONCEAL_CARDS.find(x => x.id === id); return cc ? '<a class="lkchip" data-open="' + id + '">' + esc(cc.t) + '</a>' : ''; }).join('') + '</div>' : '') +
+      '<h4>What to look for</h4><ul>' + c.look.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul>' +
+      '<h4>What to check</h4><ul>' + c.check.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul>' +
+      '<div class="lkn"><b>Note:</b> ' + esc(c.note) + '</div>' +
+      '<button type="button" class="lkbtn" data-show="' + c.id + '"' + (n ? '' : ' disabled') + '>Show these reports' + (n ? ' (' + n + ')' : '') + '</button>' +
+      '<button type="button" class="lkbtn" data-copy="' + c.id + '">Copy card text</button></div></details>';
+  }).join('');
+}
+function showCardBar() {
+  $('cardBar').innerHTML = cardFilter ? 'Showing only reports for <b>' + esc(cardName) + '</b> &nbsp; <a href="#" id="cardClear">Show all</a>' : '';
+}
+document.querySelectorAll('#lookCard .tabs button').forEach(b => b.onclick = () => { lookTab = b.dataset.tab; renderLook(); showInfTab(lookTab); });
+$('lookList').addEventListener('click', ev => {
+  const open = ev.target.closest('[data-open]'), show = ev.target.closest('[data-show]'), copy = ev.target.closest('[data-copy]');
+  if (open) {
+    ev.preventDefault(); lookTab = 'c'; renderLook();
+    const d = document.querySelector('#lookList details[data-id="' + open.dataset.open + '"]');
+    if (d) { d.open = true; d.scrollIntoView({behavior: 'smooth', block: 'start'}); }
+  } else if (show) {
+    const list = lookTab === 'c' ? CONCEAL_CARDS : ROUTE_CARDS, c = list.find(x => x.id === show.dataset.show);
+    cardFilter = lookTab === 'c' ? CONCEAL_PRED(c) : ROUTE_PRED[c.id]; cardName = c.t;
+    ['fQ', 'fCategory', 'fDrug', 'fBand', 'fMode'].forEach(id => $(id).value = ''); fillTypes(); $('fDays').value = '9999';
+    infraSelected.clear(); renderInfraList(''); updateInfraBtn();
+    showCardBar(); render(); $('evT').scrollIntoView({behavior: 'smooth', block: 'start'});
+  } else if (copy) {
+    const list = lookTab === 'c' ? CONCEAL_CARDS : ROUTE_CARDS, c = list.find(x => x.id === copy.dataset.copy);
+    const done = () => { copy.textContent = 'Copied'; setTimeout(() => copy.textContent = 'Copy card text', 1500); };
+    try { navigator.clipboard.writeText(cardText(c)).then(done, () => { copy.textContent = 'Copy not allowed'; }); } catch (e) { copy.textContent = 'Copy not allowed'; }
+  }
+});
+$('cardBar').addEventListener('click', ev => { if (ev.target.id === 'cardClear') { ev.preventDefault(); cardFilter = null; cardName = ''; showCardBar(); render(); } });
+renderLook();
+drawCoverage();
+
+// ---- watchlist: saved in this browser only
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } }
+};
+const RANK = {High: 3, Medium: 2, Low: 1};
+const tokens = q => q.toLowerCase().split(/[\s>\u2192,;]+/).filter(t => t && !['to', 'from', 'via', '-', '->'].includes(t));
+const hay = e => [e.country, e.place, e.origin, e.dest, e.transit, e.conceal, e.title, e.title_en, e.corridor, e.route, e.drug, e.vessel, e.line, e.cover, e.containers, e.origin_place, e.dest_place].join(' ').toLowerCase();
+const matchW = (e, w) => (RANK[e.band] || 1) >= w.min && tokens(w.q).every(t => hay(e).includes(t));
+let watches = store.get('sw_watches', []);
+const prevSeen = store.get('sw_seen', null);                 // null = first visit on this device
+const seenSet = new Set(prevSeen || []);
+const isNew = e => prevSeen !== null && !seenSet.has(e.url);
+store.set('sw_seen', [...new Set([...(prevSeen || []), ...D.events.map(e => e.url)])].slice(-6000));
+const isWatched = e => watches.some(w => matchW(e, w));
+
+function renderWatch() {
+  const newHits = [];
+  $('watchList').innerHTML = watches.length ? watches.map((w, i) => {
+    const hits = D.events.filter(e => matchW(e, w)), nn = hits.filter(isNew);
+    nn.forEach(e => { if (!newHits.includes(e)) newHits.push(e); });
+    return '<span class="wchip"><a class="wgo" data-go="' + i + '">' + esc(w.q) + (w.min > 1 ? ' <span class="small">(' + (w.min === 3 ? 'high only' : 'medium+') + ')</span>' : '') + '</a> <b>' + hits.length + '</b>' +
+      (nn.length ? ' <span class="wnew">' + nn.length + ' new</span>' : '') + ' <a class="wx" data-x="' + i + '" title="Remove">&times;</a></span>';
+  }).join('') : '<div class="small" style="margin-top:10px">No watches yet. Add a port, a route, a drug or a concealment method above.</div>';
+  newHits.sort((a, b) => b.score - a.score);
+  const lines = newHits.slice(0, 12).map(e => e.date + ' | ' + e.drug + (qty(e) ? ' (' + qty(e) + ')' : '') + ' | ' + (e.route || e.corridor || e.country || '') + '\n' + (e.title_en || e.title) + '\n' + safe(e.url));
+  const body = 'New Seizure Watch events matching my watchlist:\n\n' + lines.join('\n\n');
+  $('watchNew').innerHTML = newHits.length
+    ? '<div class="wbanner"><b>' + newHits.length + ' new event' + (newHits.length > 1 ? 's' : '') + ' match your watchlist</b> &nbsp; <a href="mailto:?subject=' +
+      encodeURIComponent('Seizure Watch: ' + newHits.length + ' new matches') + '&body=' + encodeURIComponent(body.slice(0, 1800)) + '" id="wMail">Email these</a>' +
+      newHits.slice(0, 8).map(e => '<div class="wi"><span class="chip ' + esc(e.band) + '">' + e.score + '</span> ' + esc(e.date) + ' | ' + esc(e.drug) + ' | ' + esc(e.route || e.corridor || e.country || '') +
+        '<br>' + esc((e.title_en || e.title || '').slice(0, 120)) + ' <a href="' + esc(safe(e.url)) + '" target="_blank" rel="noopener noreferrer">open</a></div>').join('') +
+      (newHits.length > 8 ? '<div class="wi small">+ ' + (newHits.length - 8) + ' more: tap a watch below</div>' : '') + '</div>'
+    : (watches.length && prevSeen !== null ? '<div class="small" style="margin-bottom:8px">No new events match your watchlist since your last visit.</div>' : '');
+  $('watchNote').textContent = watches.length ? '(' + watches.length + ' watch' + (watches.length > 1 ? 'es' : '') + ')' : '';
+}
+function addWatch() {
+  const q = $('wQ').value.trim();
+  if (!tokens(q).length) return;
+  watches.push({q, min: +$('wBand').value});
+  if (!store.set('sw_watches', watches)) $('watchNote').textContent = '(cannot save: private browsing is on)';
+  $('wQ').value = '';
+  renderWatch(); render();
+}
+$('wAdd').onclick = addWatch;
+$('wQ').addEventListener('keydown', ev => { if (ev.key === 'Enter') addWatch(); });
+$('watchList').addEventListener('click', ev => {
+  const go = ev.target.closest('[data-go]'), x = ev.target.closest('[data-x]');
+  if (x) { watches.splice(+x.dataset.x, 1); store.set('sw_watches', watches); renderWatch(); render(); }
+  else if (go) {
+    const w = watches[+go.dataset.go];
+    $('fQ').value = w.q; $('fDays').value = '9999'; $('fBand').value = w.min === 3 ? 'High' : '';
+    render(); $('evT').scrollIntoView({behavior: 'smooth', block: 'start'});
+  }
+});
+renderWatch();
+
+$('fDays').innerHTML = periodOptions('90');   // months and years added to the period filter
+render();
+
+// ---- Repeat links, production chain, event detail with officer checklist
+function linksPanel() {
+  const L = linksInView();
+  $('linkNote').textContent = L.length ? '(' + L.length + ' leads still active in the last 30 days)' : '';
+  if (!L.length) { $('linkT').innerHTML = '<tr><td class="small">' + (filtersActive() ? 'No repeat links match the filters.' : 'No repeat links found right now.') + '</td></tr>'; return; }
+  $('linkT').innerHTML = '<tr><th>What repeats</th><th>Reports</th><th>Last 30 d</th><th>Seen in</th><th>Items</th><th>Latest</th><th>Sources</th></tr>' +
+    L.slice(0, 60).map(r => '<tr class="lkrow"><td><b>' + esc(r.name) + '</b><span class="small"> ' + esc(r.type) + '</span>' +
+      (r.note ? '<span class="nt">' + esc(r.note) + '</span>' : '') + '</td><td>' + r.n + '</td><td>' + r.recent + '</td><td class="small">' + esc((r.countries || []).join(', ')) +
+      '</td><td class="small">' + esc((r.items || []).join(', ')) + '</td><td>' + esc(r.last) + '</td><td class="small">' +
+      (r.urls || []).map((u, i) => '<a href="' + esc(safe(u)) + '" target="_blank" rel="noopener noreferrer">' + (i + 1) + '</a>').join(' ') + '</td></tr>').join('');
+}
+function chainPanel() {
+  const C = chainInView();
+  const lk = C.countries.filter(r => r.linked);
+  $('chainNote').textContent = '(last ' + (C.days || 90) + ' days: ' + C.n_precursor + ' precursor seizures, ' + C.n_lab + ' laboratory reports; ' + lk.length + ' countries with a possible link)';
+  if (!C.countries.length) { $('chainT').innerHTML = '<tr><td class="small">' + (filtersActive() ? 'No production-chain rows match the filters.' : 'No precursor seizures or laboratory reports found.') + '</td></tr>'; return; }
+  $('chainT').innerHTML = '<tr><th>Country</th><th>Possible link</th><th>Precursor seizures</th><th>Lab reports</th><th>Synthetic-drug seizures nearby (same place)</th><th>Latest lab / precursor</th><th>Sources</th></tr>' +
+    C.countries.slice(0, 40).map(r => '<tr class="lkrow"><td><b>' + esc(r.country) + '</b></td><td>' + (r.linked ? '<span class="stg Medium">possible</span>' : '<span class="stg Low">no match</span>') +
+      '</td><td>' + r.n_precursor + (r.precursors.length ? '<span class="small"> ' + esc(r.precursors.join(', ')) + (r.kg_precursor ? ', ' + r.kg_precursor + ' kg' : '') + '</span>' : '') +
+      '</td><td>' + r.n_lab + '</td><td>' + r.n_synth + ' <span class="small">(' + r.n_local + ')</span></td><td>' + esc(r.last_anchor) + '</td><td class="small">' +
+      (r.urls || []).map((u, i) => '<a href="' + esc(safe(u)) + '" target="_blank" rel="noopener noreferrer">' + (i + 1) + '</a>').join(' ') + '</td></tr>').join('');
+}
+function checklistFor(e) {
+  const K = D.checklists; if (!K) return [];
+  const out = [], seen = new Set();
+  const add = (tag, arr) => (arr || []).forEach(t => { if (!seen.has(t)) { seen.add(t); out.push([tag, t]); } });
+  String(e.flags || '').split(', ').filter(Boolean).forEach(f => add(f, K.flags[f]));
+  String(e.conceal || '').split('; ').filter(Boolean).forEach(c => add(c, K.conceal[c]));
+  if (e.transport) add(e.transport, K.transport[e.transport]);
+  if (e.category) add(e.category, K.category[e.category]);
+  return out;
+}
+function openEvent(id) {
+  const e = D.events.find(x => x.id === id); if (!e) return;
+  const M = D.risk_model, names = M ? M.dimensions.map(d => [d.name, d.max]) : [];
+  $('evTitle').textContent = e.title_en || e.title || (e.drug + ' seizure');
+  let h = '<p class="small" style="margin:0 0 10px">' + [e.date, e.drug_label || e.drug, qty(e), e.route || e.corridor, [e.place, e.country].filter(Boolean).join(', ')].filter(Boolean).map(esc).join(' | ') +
+    '</p>';
+  const cl = checklistFor(e);
+  h += '<h4>What to check</h4>' + (cl.length ? '<ul>' + cl.map(c => '<li><span class="ptag">' + esc(c[0]) + '</span>' + esc(c[1]) + '</li>').join('') + '</ul>' :
+    '<div class="small">No specific indicators were found in this report, so there is no specific checklist.</div>');
+  const lk = (D.links || []).filter(r => (r.ids || []).includes(e.id));
+  if (lk.length) h += '<h4>Linked reports</h4><ul>' + lk.map(r => '<li><b>' + esc(r.name) + '</b> <span class="small">(' + esc(r.type) + ') appears in ' + r.n + ' separate reports, latest ' + esc(r.last) + '</span>' + (r.note ? '<div class="small">' + esc(r.note) + '</div>' : '') + '</li>').join('') + '</ul>';
+  if (e.url) h += '<p style="margin:12px 0 0"><a href="' + esc(safe(e.url)) + '" target="_blank" rel="noopener noreferrer">Open the source report</a></p>';
+  h += '<p class="small" style="margin:12px 0 0;color:#66758a">' + esc((D.checklists || {}).note || '') + ' The facts come from automatic reading of a news report and can be wrong: verify before acting.</p>';
+  $('evBody').innerHTML = h; $('evModal').classList.add('on');
+}
+$('evT').addEventListener('click', ev => { const c = ev.target.closest('.chip[data-id], a.dtl[data-id]'); if (c) { ev.preventDefault(); openEvent(+c.dataset.id); } });
+
+(function () {
+  const top = $('evTop'), wrap = $('evWrap'); let lock = false;
+  const size = () => { top.firstChild.style.width = $('evT').scrollWidth + 'px'; };
+  top.addEventListener('scroll', () => { if (!lock) { lock = true; wrap.scrollLeft = top.scrollLeft; } lock = false; });
+  wrap.addEventListener('scroll', () => { if (!lock) { lock = true; top.scrollLeft = wrap.scrollLeft; } lock = false; });
+  size(); window.addEventListener('resize', size); new MutationObserver(size).observe($('evT'), {childList: true});
+})();
+
+(function () {
+  const all = (D.events || []).filter(e => e.url).slice().sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+  const hay = all.map(e => [e.title_en, e.title, e.drug, e.country, e.place, e.route, e.corridor, e.outlets, e.conceal, e.date].filter(Boolean).join(' ').toLowerCase());
+  let hits = all.map((_, i) => i), shown = 0; const PAGE = 30, VISIBLE = 10;
+  const row = e => '<div class="wi" style="padding:7px 0;border-bottom:1px solid #e1e8f2"><b>' + esc(e.date) + '</b> | ' + esc(e.drug_label || e.drug) +
+    (e.country ? ' | ' + esc([e.place, e.country].filter(Boolean).join(', ')) : '') + '<br><a href="' + esc(safe(e.url)) + '" target="_blank" rel="noopener noreferrer">' + esc(e.title_en || e.title || e.url) + '</a>' +
+    (e.outlets ? ' <span class="small">(' + esc(e.outlets) + ')</span>' : '') + '</div>';
+  function sizeBox() {   // the box is as tall as 10 articles; scroll inside it for the rest
+    const rows = $('libList').querySelectorAll('.wi'); let h = 0;
+    for (let i = 0; i < Math.min(VISIBLE, rows.length); i++) h += rows[i].offsetHeight;
+    $('libList').style.maxHeight = (h || 520) + 'px';
+    $('libHint').textContent = hits.length > VISIBLE ? 'Showing 10 at a time - scroll inside the box for more (' + shown + ' of ' + hits.length + ' loaded).' : '';
+  }
+  function draw(reset) {
+    if (reset) { shown = 0; $('libList').innerHTML = ''; }
+    const next = hits.slice(shown, shown + PAGE);
+    $('libList').insertAdjacentHTML('beforeend', next.map(i => row(all[i])).join(''));
+    shown += next.length;
+    $('libCount').textContent = '(' + hits.length + ' of ' + all.length + ' articles)';
+    sizeBox();
+    if (!hits.length) $('libList').innerHTML = '<div class="small">No articles match the filters or your search.</div>';
+  }
+  // the library follows the filters at the top (including the period) and its own search box
+  function refresh() {
+    const w = $('libQ').value.toLowerCase().split(/\s+/).filter(Boolean), [a, b] = periodRange($('fDays').value), ok = matcher();
+    hits = []; hay.forEach((h, i) => { const e = all[i]; if (e.date >= a && e.date <= b && ok(e) && w.every(x => h.includes(x))) hits.push(i); }); draw(true);
+  }
+  window.libRefresh = refresh;
+  let t; $('libQ').addEventListener('input', () => { clearTimeout(t); t = setTimeout(refresh, 150); });
+  $('libList').addEventListener('scroll', () => { const b = $('libList'); if (shown < hits.length && b.scrollTop + b.clientHeight >= b.scrollHeight - 80) draw(false); });
+  window.addEventListener('resize', sizeBox);
+  refresh();
+})();
+$('evClose').onclick = () => $('evModal').classList.remove('on');
+$('evModal').addEventListener('click', ev => { if (ev.target.id === 'evModal') $('evModal').classList.remove('on'); });
+document.addEventListener('keydown', ev => { if (ev.key === 'Escape') $('evModal').classList.remove('on'); });
+linksPanel(); chainPanel();
+riskBox();
+$('foot').innerHTML = 'Open-source news only. Facts are extracted automatically from headlines and articles and can be wrong - always verify through the link. Risk scores rank reports for analyst attention; they are indicators, not findings. Only extracted facts and links are stored, not article text.';
+</script>
+<!-- GoatCounter: privacy-friendly view counter (no cookies, no personal data) -->
+<script data-goatcounter="https://gertberi.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
+<script>
+fetch('https://gertberi.goatcounter.com/counter/TOTAL.json')
+  .then(function(r){ return r.ok ? r.json() : null; })
+  .then(function(d){
+    var el = document.getElementById('views');
+    if (!el || !d || !d.count) return;
+    el.textContent = 'Dashboard views: ' + String(d.count).trim();
+    el.hidden = false;
+  })
+  .catch(function(){});
+</script>
+<script>
+/* Tabs: show one section at a time; anything that scrolls to an element (Byte, KPI cards) switches tab first. */
+(function () {
+  var tabs = document.getElementById('mainTabs'), names = ['overview', 'leads', 'analysis', 'events', 'library', 'method'];
+  function show(v, keepHash) {
+    if (names.indexOf(v) < 0) v = 'overview';
+    names.forEach(function (n) { var s = document.getElementById('v-' + n); if (s) s.classList.toggle('on', n === v); });
+    [].forEach.call(tabs.querySelectorAll('button'), function (b) { b.classList.toggle('on', b.dataset.view === v); });
+    if (!keepHash) { try { history.replaceState(null, '', '#' + v); } catch (e) {} }
+    setTimeout(function () {
+      try { if (v === 'overview' && map) map.invalidateSize(); if (v === 'method' && cmap) cmap.invalidateSize(); } catch (e) {}
+      window.dispatchEvent(new Event('resize'));
+    }, 30);
+  }
+  window.showView = show;
+  tabs.addEventListener('click', function (e) { var b = e.target.closest('button'); if (b) { show(b.dataset.view); window.scrollTo({top: 0}); } });
+  var sv = Element.prototype.scrollIntoView;
+  Element.prototype.scrollIntoView = function (o) {
+    var v = this.closest && this.closest('.view');
+    if (v && !v.classList.contains('on')) show(v.id.slice(2));
+    return sv.call(this, o);
+  };
+  show((location.hash || '').slice(1), true);
+})();
+</script>
+__BYTE__
+</body>
+</html>

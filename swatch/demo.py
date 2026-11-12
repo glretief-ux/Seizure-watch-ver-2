@@ -1,0 +1,262 @@
+# -*- coding: utf-8 -*-
+"""
+Synthetic sample articles so you can see the whole platform working without internet.
+Everything here is invented (fictional outlets, example.com links). It is written to *look like*
+news wire copy so the same extractor runs on it as on real articles.
+Built-in story planted in the last week: a spike on Ecuador -> Belgium cocaine containers,
+a brand-new Peru -> Poland corridor, and two insider-type cases.
+"""
+import random
+import datetime as dt
+
+OUTLETS = ["Demo Daily", "Sample Herald", "Example Post", "Mock Courier", "Test Gazette"]
+
+
+def _q(kg):
+    return f"{kg / 1000:.1f} tonnes" if kg >= 1000 else f"{kg} kg"
+
+
+def _n(n):
+    return {1: "One", 2: "Two", 3: "Three", 4: "Four", 5: "Five", 6: "Six"}.get(n, str(n))
+
+
+COKE = [("Ecuador", "Belgium", "Antwerp", "bananas"), ("Ecuador", "Netherlands", "Rotterdam", "frozen fish"),
+        ("Colombia", "Spain", "Algeciras", "coffee"), ("Brazil", "Germany", "Hamburg", "sugar"),
+        ("Peru", "Italy", "Gioia Tauro", "timber"), ("Panama", "United Kingdom", "Felixstowe", "pineapples"),
+        ("Ecuador", "France", "Le Havre", "bananas"), ("Colombia", "Portugal", "Sines", "fruit juice")]
+
+
+def coke_container(rng, kg=None, route=None):
+    o, d, port, cargo = route or rng.choice(COKE)
+    kg = kg or rng.choice([120, 250, 400, 640, 780, 1200, 1900, 2300, 3100])
+    n = rng.randint(0, 5)
+    extra = " Investigators suspect a criminal network is behind the shipment." if rng.random() < .35 else ""
+    arr = f" {_n(n)} suspects were arrested." if n else ""
+    title = f"Customs seize {_q(kg)} of cocaine hidden in {cargo} shipment at {port}"
+    text = (f"Customs officers at the port of {port} seized {_q(kg)} of cocaine concealed among {cargo} in a container "
+            f"that departed from {o} and was bound for {d}. The container was selected after a risk analysis.{arr}{extra}")
+    return title, text
+
+
+def air_pax(rng):
+    o = rng.choice(["Ethiopia", "Pakistan", "Colombia", "Brazil", "Nigeria"])
+    airport, _ = rng.choice([("Heathrow", "UK"), ("Schiphol", "NL"), ("Sydney", "AU")])
+    drug = {"Ethiopia": "heroin", "Pakistan": "heroin", "Colombia": "cocaine", "Brazil": "cocaine", "Nigeria": "methamphetamine"}[o]
+    pellets = rng.randint(40, 120)
+    title = f"Passenger arrested at {airport} after swallowing {pellets} pellets of {drug}"
+    text = (f"A man arriving on a flight from {o} was detained at {airport} after officers found he had swallowed "
+            f"{pellets} pellets of {drug}. Officers seized the pellets, weighing {rng.randint(1, 2)} kg.")
+    return title, text
+
+
+def road_cannabis(rng):
+    ctry, o, unit = rng.choice([("Spain", "Morocco", "border crossing"), ("Italy", "Albania", "border crossing"),
+                                ("France", "Spain", "border crossing"), ("Netherlands", "Belgium", "highway checkpoint")])
+    kg = rng.choice([180, 340, 520, 900, 1450, 2600])
+    title = f"Police seize {_q(kg)} of cannabis hidden in a truck in {ctry}"
+    text = (f"Police in {ctry} seized {_q(kg)} of cannabis found in a false compartment of a truck at a {unit}. "
+            f"The truck was coming from {o}. Two men were arrested.")
+    return title, text
+
+
+def post_nsa(rng):
+    o, d, place = rng.choice([("Netherlands", "Australia", "Sydney"), ("Netherlands", "United Kingdom", "Heathrow"),
+                              ("Canada", "United States", "Los Angeles")])
+    pills = rng.choice([20000, 45000, 120000, 300000])
+    title = f"Border officers intercept {pills:,} MDMA tablets sent by post to {d}"
+    text = (f"Border officers at {place} intercepted parcels containing {pills:,} tablets of MDMA sent by post from {o}. "
+            f"The parcels were bound for {d}.")
+    return title, text
+
+
+def meth_sea(rng):
+    kg = rng.choice([90, 180, 350, 720])
+    title = f"Navy intercepts fishing vessel carrying {kg} kg of methamphetamine"
+    text = (f"The navy intercepted a fishing vessel near Indonesia carrying {kg} kg of methamphetamine that "
+            f"originated in Myanmar, hidden under the hull compartments. Three crew members were arrested.")
+    return title, text
+
+
+def cigarettes(rng):
+    m = rng.choice([2, 4, 8, 12])
+    o, place = rng.choice([("Dubai", "Felixstowe"), ("China", "Hamburg"), ("Dubai", "Rotterdam")])
+    title = f"Customs seize {m} million cigarettes in container declared as furniture at {place}"
+    text = f"Customs seized {m} million cigarettes in a container declared as furniture. The container arrived at {place} from {o}."
+    return title, text
+
+
+def captagon(rng):
+    m = rng.choice([1, 2, 3])
+    title = f"Police seize {m} million captagon pills bound for Saudi Arabia"
+    text = (f"Police seized {m} million captagon pills bound for Saudi Arabia hidden inside a false compartment of a "
+            f"truck at the Jordan border crossing. The truck was coming from Syria. Two men were arrested.")
+    return title, text
+
+
+def es_container(rng):
+    o, port, cargo = rng.choice([("Ecuador", "Algeciras", "bananos"), ("Colombia", "Algeciras", "café"),
+                                 ("Peru", "Algeciras", "azúcar")])
+    kg = rng.choice([300, 800, 1500, 2200])
+    title = f"Incautan {kg:,} kilos de cocaína en el puerto de {port}".replace(",", ".")
+    text = (f"La Guardia Civil incautó {kg} kilos de cocaína ocultos en un contenedor de {cargo} procedente de {o} "
+            f"en el puerto de {port}. Fueron detenidas tres personas.")
+    return title, text
+
+
+def fr_container(rng):
+    o = rng.choice(["Colombie", "Equateur"])
+    kg = rng.choice([250, 600, 1100])
+    title = f"Saisie de {kg} kg de cocaïne au port du Havre"
+    text = (f"Les douaniers ont saisi {kg} kg de cocaïne dissimulés dans un conteneur de bananes en provenance de "
+            f"{o} au port du Havre. Deux personnes ont été interpellées.")
+    return title, text
+
+
+def insider(rng, port):
+    kg = rng.choice([300, 450, 900])
+    title = f"Two port workers arrested after {kg} kg of cocaine recovered from container in {port}"
+    text = (f"Two port workers were arrested after {kg} kg of cocaine was recovered from a container at the port of "
+            f"{port}. Investigators suspect an extraction crew of insiders collected the drugs before customs checks.")
+    return title, text
+
+
+def stolen_vehicle(rng):
+    """Non-drug: stolen vehicles recovered in a cross-border theft/smuggling ring."""
+    ctry, dest = rng.choice([("South Africa", "Mozambique"), ("Germany", "Poland"),
+                             ("United Kingdom", "Nigeria"), ("United States", "Mexico")])
+    n = rng.choice([2, 3, 5, 8, 12])
+    kind = rng.choice(["cars", "trucks", "motorcycles"])
+    title = f"Police recover {n} stolen {kind} bound for {dest} in cross-border theft ring bust"
+    text = (f"Police in {ctry} recovered {n} stolen {kind} that investigators say were destined for {dest}. "
+            f"Officers say an organized network is behind the vehicle theft and smuggling operation. "
+            f"Three suspects were arrested.")
+    return title, text
+
+
+def precursor_chemical(rng):
+    """Non-drug: precursor chemicals seized en route to a clandestine lab."""
+    chem, qty = rng.choice([("acetic anhydride", rng.choice([500, 1200, 2500])),
+                            ("potassium permanganate", rng.choice([800, 1500])),
+                            ("ephedrine", rng.choice([40, 90, 150]))])
+    place = rng.choice(["Lagos", "Bangkok", "Lima", "Karachi"])
+    title = f"Customs seize {qty} kg of {chem} destined for clandestine drug lab near {place}"
+    text = (f"Customs officers seized {qty} kg of {chem}, a precursor chemical used to manufacture illegal drugs, "
+            f"in a shipment bound for a clandestine laboratory near {place}. Two suspects were detained.")
+    return title, text
+
+
+def cites_timber(rng):
+    """Non-drug: CITES-protected timber species seized from illegal logging."""
+    species = rng.choice(["rosewood", "ebony", "agarwood", "mahogany"])
+    o, d = rng.choice([("Madagascar", "China"), ("Democratic Republic of Congo", "Vietnam"),
+                       ("Peru", "United States")])
+    kg = rng.choice([3000, 8000, 15000])
+    title = f"Rangers seize {kg} kg of illegally logged {species}, a CITES protected timber species, bound for {d}"
+    text = (f"Wildlife rangers seized {kg} kg of {species}, a CITES-protected timber species, illegally logged in "
+            f"{o} and destined for {d}. The shipment was declared as general cargo to evade detection.")
+    return title, text
+
+
+def arms_ammo(rng):
+    """Non-drug: illegal firearms and ammunition seized from an armed criminal group."""
+    kind, n = rng.choice([("rifles", rng.choice([8, 15, 22])), ("pistols", rng.choice([5, 12, 20])),
+                          ("handguns", rng.choice([6, 10, 18]))])
+    rounds = rng.choice([1500, 4000, 9000])
+    place = rng.choice(["Nairobi", "Manila", "Tegucigalpa", "Johannesburg"])
+    title = f"Police seize {n} {kind} and {rounds:,} rounds of ammunition in raid near {place}"
+    text = (f"Police seized {n} {kind} and {rounds} rounds of ammunition hidden in a cache near {place}. "
+            f"Officers say a criminal network is behind the arms trafficking operation. Four suspects were arrested.")
+    return title, text
+
+
+LANG = {es_container: "es", fr_container: "fr"}
+def cites_ivory(rng):
+    """Non-drug: elephant ivory seized in transit (invented sample)."""
+    o, d = rng.choice([("Kenya", "Vietnam"), ("Tanzania", "China"), ("Nigeria", "Thailand")])
+    kg = rng.choice([300, 800, 2500])
+    title = f"Customs seize {kg} kg of elephant ivory hidden in a container bound for {d}"
+    text = (f"Customs officers seized {kg} kg of raw elephant ivory, a CITES-listed product, hidden among general cargo "
+            f"in a sea container shipped from {o} to {d}. Two suspects were arrested.")
+    return title, text
+
+
+def cites_fauna(rng):
+    """Non-drug: other protected fauna seized (invented sample)."""
+    item, o, d = rng.choice([("pangolin scales", "Nigeria", "Vietnam"), ("live tortoises", "Madagascar", "Thailand"),
+                             ("shark fins", "Ecuador", "China")])
+    kg = rng.choice([120, 400, 900])
+    title = f"{kg} kg of {item} seized at port in wildlife trafficking case"
+    text = (f"Authorities seized {kg} kg of {item}, protected under CITES, in a wildlife trafficking case. The shipment "
+            f"travelled from {o} to {d}, declared as frozen food.")
+    return title, text
+
+
+BACKGROUND = [(coke_container, 36), (air_pax, 14), (road_cannabis, 12), (post_nsa, 8), (meth_sea, 5), (cigarettes, 8),
+              (captagon, 5), (es_container, 7), (fr_container, 5),
+              (stolen_vehicle, 4), (precursor_chemical, 4), (cites_timber, 4), (arms_ammo, 4),
+              (cites_ivory, 3), (cites_fauna, 3)]
+
+
+def demo_articles(today=None, seed=7):
+    today = today or dt.date.today()
+    rng = random.Random(seed)
+    items, uid = [], [0]
+
+    def add(day_offset, gen, lang="en", dup=True, **kw):
+        title, text = gen(rng, **kw)
+        pub = (today - dt.timedelta(days=day_offset)).isoformat()
+        uid[0] += 1
+        items.append({"url": f"https://example.com/demo/{uid[0]}", "title": title, "text": text, "published": pub,
+                      "source": rng.choice(OUTLETS), "lang": lang, "source_country": None, "text_mode": "full"})
+        if dup and rng.random() < .12:      # same seizure reported by a second outlet
+            uid[0] += 1
+            items.append({"url": f"https://example.com/demo/{uid[0]}", "title": "Drug bust: " + title, "text": text,
+                          "published": pub, "source": rng.choice(OUTLETS), "lang": lang, "source_country": None,
+                          "text_mode": "full"})
+
+    weights = [g for g, w in BACKGROUND for _ in range(w)]
+    for day in range(14, 80):
+        for _ in range(rng.choice([0, 1, 1, 2, 2, 3])):
+            g = rng.choice(weights)
+            add(day, g, LANG.get(g, "en"))
+    for day in range(0, 14):                      # normal activity in the last two weeks too
+        for _ in range(rng.choice([0, 1, 1, 2])):
+            g = rng.choice([x for x in weights if x is not coke_container])
+            add(day, g, LANG.get(g, "en"))
+    # planted signal 1: Ecuador -> Belgium cocaine spike, last 6 days
+    for i, kg in enumerate([410, 850, 1300, 2100, 640, 1750, 930, 2600]):
+        add(i % 6, coke_container, route=("Ecuador", "Belgium", "Antwerp", "bananas"), kg=kg, dup=False)
+    # planted signal 2: brand-new corridor Peru -> Poland
+    for i, kg in enumerate([520, 1100, 760]):
+        add(2 + 3 * i, coke_container, route=("Peru", "Poland", "Gdansk", "steel"), kg=kg, dup=False)
+    # planted signal 3: insider cases
+    add(1, insider, port="Antwerp", dup=False)
+    add(4, insider, port="Rotterdam", dup=False)
+    # planted signal 4: new contraband categories, recent enough to show up in the default 90-day view
+    for i in range(3):
+        add(2 + i * 5, stolen_vehicle, dup=False)
+    for i in range(2):
+        add(3 + i * 6, precursor_chemical, dup=False)
+    for i in range(2):
+        add(1 + i * 7, cites_timber, dup=False)
+    for i in range(3):
+        add(0 + i * 4, arms_ammo, dup=False)
+    # one invented report in each newly supported language (made-up facts)
+    for i, (lang, t, x) in enumerate([
+        ("ar", "ضبط 2.5 طن من الكوكايين في ميناء جدة قادمة من كولومبيا", "ضبطت الجمارك شحنة كوكايين مخبأة بين شحنة موز داخل حاوية."),
+        ("tr", "Mersin Limanı'nda konteynerde 1,2 ton kokain ele geçirildi", "Ekvador'dan gelen konteynerde muz sevkiyatı arasına gizlenmiş kokain bulundu."),
+        ("ru", "В порту Гамбурга изъяли 1,5 тонны кокаина из Эквадора", "Таможенники обнаружили кокаин среди бананов в контейнере."),
+        ("zh", "海关在深圳港查获3.2吨可卡因，来自厄瓜多尔", "海关人员在一批香蕉集装箱中发现藏匿的可卡因。"),
+        ("hi", "मुंबई एयरपोर्ट पर 5 किलो कोकीन जब्त, दो गिरफ्तार", "कस्टम अधिकारियों ने सूटकेस में छिपाई गई कोकीन बरामद की।"),
+    ]):
+        uid[0] += 1
+        items.append({"url": f"https://example.com/demo/{lang}{i}", "title": t, "text": x, "published": (today - dt.timedelta(days=i)).isoformat(),
+                      "source": "Demo Daily", "lang": lang, "source_country": None, "text_mode": "full"})
+    # a few unrelated / irrelevant headlines to prove the filter works
+    for i, (t, x) in enumerate([("Cannabis stocks rally as legalization bill advances", "Shares rose on the stock market."),
+                                ("Local bakery wins national award", "The bakery was praised for its bread.")]):
+        uid[0] += 1
+        items.append({"url": f"https://example.com/demo/x{i}", "title": t, "text": x,
+                      "published": today.isoformat(), "source": "Demo Daily", "lang": "en",
+                      "source_country": None, "text_mode": "full"})
+    return items

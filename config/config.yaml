@@ -1,0 +1,432 @@
+# =====================================================================
+#  SEIZURE WATCH - configuration
+#  Everything you may want to tune is here. Comments explain each block.
+# =====================================================================
+
+run:
+  lookback_days: 2            # how far back each daily run searches (2 = safe overlap)
+  max_articles_per_run: 1500   # cap on article downloads per run (official sources are read first)
+  fetch_full_text: true       # false = headline/snippet only (faster, less accurate)
+  resolve_google_links: true  # needs the optional 'googlenewsdecoder' package (in requirements.txt)
+  report_days: 180            # how much history the dashboard shows
+
+sources:
+  google_news:
+    enabled: true
+    delay_seconds: 1.0
+    # Each edition = one Google News country/language front page. More editions = wider coverage.
+    editions:
+      - {lang: en, hl: en-US,  gl: US, ceid: "US:en"}
+      - {lang: en, hl: en-GB,  gl: GB, ceid: "GB:en"}
+      - {lang: en, hl: en-AU,  gl: AU, ceid: "AU:en"}
+      - {lang: en, hl: en-IN,  gl: IN, ceid: "IN:en"}
+      - {lang: en, hl: en-ZA,  gl: ZA, ceid: "ZA:en"}
+      - {lang: en, hl: en-NG,  gl: NG, ceid: "NG:en"}
+      - {lang: es, hl: es-419, gl: MX, ceid: "MX:es-419"}
+      - {lang: es, hl: es,     gl: ES, ceid: "ES:es"}
+      - {lang: es, hl: es-419, gl: CO, ceid: "CO:es-419"}
+      - {lang: fr, hl: fr,     gl: FR, ceid: "FR:fr"}
+      - {lang: pt, hl: pt-BR,  gl: BR, ceid: "BR:pt-419"}
+      - {lang: pt, hl: pt-PT,  gl: PT, ceid: "PT:pt-150"}
+      # more languages (Arabic, Turkish, Russian, Chinese, Hindi)
+      - {lang: ar, hl: ar,     gl: SA, ceid: "SA:ar"}
+      - {lang: ar, hl: ar,     gl: EG, ceid: "EG:ar"}
+      - {lang: ar, hl: ar,     gl: AE, ceid: "AE:ar"}
+      - {lang: tr, hl: tr,     gl: TR, ceid: "TR:tr"}
+      - {lang: ru, hl: ru,     gl: RU, ceid: "RU:ru"}
+      - {lang: ru, hl: ru,     gl: UA, ceid: "UA:ru"}
+      - {lang: zh, hl: zh-CN,  gl: CN, ceid: "CN:zh-Hans"}
+      - {lang: zh, hl: zh-HK,  gl: HK, ceid: "HK:zh-Hant"}
+      - {lang: zh, hl: zh-TW,  gl: TW, ceid: "TW:zh-Hant"}
+      - {lang: hi, hl: hi,     gl: IN, ceid: "IN:hi"}
+      - {lang: vi, hl: vi,     gl: VN, ceid: "VN:vi"}   # Vietnam (ivory searches)
+      # Dutch and Flemish: both editions share the "nl" queries below (Antwerp and Rotterdam are the two big
+      # European cocaine gateways, so local Dutch-language reporting is often first)
+      - {lang: nl, hl: nl,     gl: NL, ceid: "NL:nl"}   # Netherlands (Dutch)
+      - {lang: nl, hl: nl,     gl: BE, ceid: "BE:nl"}   # Belgium, Flanders (Flemish)
+      # Austria, Nordic and Baltic countries, Slovakia, Ethiopia and Mongolia. Google News may not serve every one of
+      # these editions (Iceland and Mongolia in particular); the run log prints "edition XX/lang: N headlines",
+      # so a 0 there means that edition returned nothing and GDELT and the official sites are doing the work.
+      - {lang: de, hl: de,     gl: AT, ceid: "AT:de"}   # Austria (German)
+      - {lang: da, hl: da,     gl: DK, ceid: "DK:da"}   # Denmark (Danish)
+      - {lang: et, hl: et,     gl: EE, ceid: "EE:et"}   # Estonia (Estonian)
+      - {lang: am, hl: am,     gl: ET, ceid: "ET:am"}   # Ethiopia (Amharic)
+      - {lang: is, hl: is,     gl: IS, ceid: "IS:is"}   # Iceland (Icelandic)
+      - {lang: mn, hl: mn,     gl: MN, ceid: "MN:mn"}   # Mongolia (Mongolian)
+      - {lang: "no", hl: "no",    gl: "NO", ceid: "NO:no"}   # Norway (Norwegian)
+      - {lang: sk, hl: sk,     gl: SK, ceid: "SK:sk"}   # Slovakia (Slovak)
+      - {lang: sv, hl: sv,     gl: SE, ceid: "SE:sv"}   # Sweden (Swedish)
+    queries:
+      en: ["drug seizure", "cocaine seized", "heroin seized", "methamphetamine seized",
+           "cannabis seized customs", "captagon seized", "fentanyl seized", "MDMA ecstasy seized",
+           "cigarettes seized customs", "drugs seized container port", "drugs seized airport",
+           "precursor chemicals seized", "clandestine drug lab chemicals seized",
+           "hazardous chemicals seized customs", "toxic chemicals smuggling seized",
+           "ozone-depleting refrigerant gas smuggling seized", "HFC refrigerants seized customs",
+           "illegal pesticides seized", "counterfeit pesticides seized", "mercury smuggling seized",
+           "ammonium nitrate seized", "hazardous waste shipment seized",
+           "stolen vehicles recovered smuggling", "stolen cars seized border",
+           "CITES protected timber seized", "rosewood seized trafficking",
+           "red sanders seized smuggling", "kosso timber seized", "mukula logs seized", "CITES timber seized port",
+           "elephant ivory seized", "ivory tusks seized customs", "rhino horn seized", "pangolin scales seized",
+           "wildlife trafficking seized", "CITES protected species seized", "live reptiles smuggling seized",
+           "protected birds smuggling seized", "shark fins seized", "glass eels trafficking seized",
+           "tiger skin bones seized", "exotic animals smuggling airport",
+           "illegal firearms seized", "weapons cache seized", "ammunition seized smuggling",
+           "arms trafficking seized", "antiquities seized customs", "looted artefacts seized", "cultural property trafficking seized", "stolen idols recovered", "ancient coins seized smuggling", "archaeological artifacts smuggling seized", "stolen paintings recovered police", "dinosaur fossils smuggling seized"]
+      es: ["incautan cocaína", "decomisan droga puerto contenedor", "incautan marihuana",
+           "incautan metanfetamina", "incautan drogas sintéticas aeropuerto",
+           "incautan químicos precursores", "incautan productos químicos", "decomisan plaguicidas ilegales",
+           "incautan mercurio", "decomisan gas refrigerante contrabando", "decomisan vehículos robados", "madera protegida CITES incautada", "incautan madera de cedro caoba",
+           "incautan marfil", "tráfico de fauna silvestre incautan", "decomisan animales exóticos aeropuerto",
+            "incautan armas de fuego", "decomisan municiones", "incautan arsenal", "incautan piezas arqueológicas", "tráfico de bienes culturales incautan", "recuperan obras de arte robadas"]
+      fr: ["saisie cocaïne", "saisie drogue port conteneur", "saisie cannabis douane", "saisie captagon",
+           "saisie précurseurs chimiques", "saisie produits chimiques dangereux", "saisie pesticides illégaux",
+           "saisie gaz réfrigérants", "véhicules volés saisis", "saisie bois protégé CITES", "saisie bois de rose", "saisie bois de vène kosso",
+           "saisie ivoire", "trafic faune sauvage saisie", "saisie civelles",
+            "saisie armes a feu", "saisie munitions", "trafic d'armes saisi", "saisie biens culturels", "saisie antiquités trafic", "objets archéologiques saisis"]
+      pt: ["apreensão cocaína porto", "apreensão droga contêiner", "apreendem maconha",
+           "apreensão de químicos precursores", "apreensão de produtos químicos", "apreensão de agrotóxicos ilegais",
+           "apreensão de mercúrio", "veículos roubados apreendidos", "apreensão madeira protegida CITES",
+           "apreensão marfim", "tráfico de animais silvestres apreensão",
+            "apreensão de armas de fogo", "apreendem munições", "apreensão peças arqueológicas", "tráfico de bens culturais apreensão"]
+      ar: ["ضبط مخدرات", "ضبط كوكايين", "ضبط حشيش", "ضبط كبتاجون", "إحباط تهريب مخدرات", "ضبط هيروين", "ضبط ترامادول", "ضبط مواد كيميائية", "ضبط مبيدات مهربة", "ضبط غاز التبريد مهرب", "ضبط نترات الأمونيوم", "ضبط زئبق", "ضبط قطع أثرية", "تهريب الآثار", "ضبط تماثيل أثرية", "ضبط عملات أثرية"]
+      tr: ["uyuşturucu ele geçirildi", "kokain ele geçirildi", "esrar ele geçirildi", "uyuşturucu hap ele geçirildi", "liman konteyner kokain", "captagon ele geçirildi", "kaçak kimyasal madde ele geçirildi", "kaçak tarım ilacı ele geçirildi", "kaçak soğutucu gaz ele geçirildi", "amonyum nitrat ele geçirildi", "tarihi eser ele geçirildi", "tarihi eser kaçakçılığı operasyonu", "tarihi sikke ele geçirildi"]
+      ru: ["изъяли наркотики", "изъяли кокаин", "изъяли героин", "изъяли метамфетамин", "контрабанда наркотиков порт", "изъяли синтетические наркотики", "изъяли химикаты", "контрабанда фреона", "изъяли пестициды", "изъяли ртуть", "контрабанда прекурсоров", "изъяли культурные ценности", "контрабанда культурных ценностей", "изъяли археологические предметы"]
+      zh: ["缴获毒品", "查获可卡因", "海关 查获 毒品", "檢獲 毒品", "檢獲 可卡因", "緝獲 冰毒", "查获 危险化学品", "走私 制冷剂", "查获 走私农药", "查获 易制毒化学品", "洋垃圾 走私 查获", "查获 走私 红木", "查获 紫檀 走私", "海关 查获 走私文物", "查获 文物 走私"]
+      vi: ["thu giữ ngà voi", "bắt giữ buôn lậu ngà voi", "hải quan phát hiện ngà voi", "ngà voi nhập lậu", "thu giữ hóa chất", "buôn lậu thuốc bảo vệ thực vật", "buôn lậu gas lạnh", "thu giữ thủy ngân", "tiền chất ma túy thu giữ", "thu giữ gỗ trắc", "buôn lậu gỗ quý hiếm", "thu giữ cổ vật", "buôn lậu cổ vật"]
+      hi: ["ड्रग्स जब्त", "कोकीन जब्त", "गांजा बरामद", "हेरोइन बरामद", "अफीम जब्त", "नशीली गोलियां बरामद", "रसायन जब्त", "कीटनाशक जब्त", "अमोनियम नाइट्रेट बरामद", "लाल चंदन जब्त", "लाल चंदन तस्करी", "प्राचीन मूर्ति बरामद", "अष्टधातु मूर्ति बरामद"]
+      # Dutch and Flemish ("in beslag genomen" = seized, "onderschept" = intercepted, "drugsvangst" = drug haul)
+      nl: ["drugs onderschept", "coke onderschept", "coke in beslag genomen", "ton coke onderschept Antwerpen",
+           "cocaïne in beslag genomen", "cocaïne onderschept haven", "drugsvangst haven Antwerpen",
+           "drugsvangst haven Rotterdam", "douane onderschept drugs container", "drugs onderschept Schiphol",
+           "heroïne in beslag genomen", "cannabis in beslag genomen", "hennep in beslag genomen",
+           "xtc-pillen in beslag genomen", "crystal meth in beslag genomen", "synthetische drugs in beslag genomen",
+           "drugslab ontmanteld", "precursoren in beslag genomen", "chemische stoffen in beslag genomen",
+           "illegale bestrijdingsmiddelen in beslag genomen", "koelgas smokkel in beslag genomen", "kwik gesmokkeld",
+           "ammoniumnitraat in beslag genomen", "gevaarlijk afval illegaal export onderschept",
+           "gestolen voertuigen onderschept haven", "gestolen auto's in beslag genomen",
+           "beschermd hout CITES in beslag genomen", "palissanderhout in beslag genomen",
+           "ivoor in beslag genomen", "neushoornhoorn in beslag genomen", "schubdieren in beslag genomen",
+           "wildsmokkel in beslag genomen", "glasaal smokkel in beslag genomen",
+           "vuurwapens in beslag genomen", "munitie in beslag genomen", "wapensmokkel onderschept",
+           "archeologische voorwerpen in beslag genomen", "cultureel erfgoed gesmokkeld", "gestolen kunstwerken teruggevonden",
+           "sigaretten in beslag genomen douane"]
+
+      # German (Austria): "sichergestellt/beschlagnahmt" = seized, "Suchtgift" = Austrian word for narcotics
+      de: ["Suchtgift sichergestellt", "Kokain sichergestellt", "Kokain beschlagnahmt Hafen", "Heroin sichergestellt",
+           "Cannabis sichergestellt Zoll", "Crystal Meth sichergestellt", "Suchtgiftschmuggel Wien", "Drogenfund Zoll Flughafen",
+           "Drogenlabor ausgehoben", "Chemikalien beschlagnahmt Zoll", "Schmuggel Zigaretten Zoll beschlagnahmt",
+           "Elfenbein sichergestellt", "Artenschutz Schmuggel sichergestellt", "Waffen sichergestellt Schmuggel",
+           "gestohlene Fahrzeuge sichergestellt", "Kulturgüter Schmuggel sichergestellt"]
+      # Danish
+      da: ["kokain beslaglagt", "narkotika beslaglagt", "hash beslaglagt", "told beslaglægger kokain havn",
+           "amfetamin beslaglagt", "heroin beslaglagt", "stoffer beslaglagt lufthavn", "narkolaboratorium",
+           "kemikalier beslaglagt", "cigaretter beslaglagt told", "elfenben beslaglagt", "våben beslaglagt smugling",
+           "stjålne biler beslaglagt", "kulturgenstande smugling beslaglagt"]
+      # Estonian
+      et: ["kokaiin konfiskeeriti", "narkootikumid konfiskeeriti", "Muuga sadam kokaiin", "salakaubavedu narkootikumid",
+           "heroiin tabati", "amfetamiin konfiskeeriti", "kanep konfiskeeriti", "narkolabor avastati",
+           "sigaretid konfiskeeriti toll", "maksu- ja tolliamet narkootikumid", "elevandiluu konfiskeeriti",
+           "relvad konfiskeeriti salakaubavedu", "varastatud autod avastati"]
+      # Amharic
+      am: ["አደንዛዥ ዕፅ ተያዘ", "ኮኬይን ተያዘ", "ሄሮይን ተያዘ", "ኮንትሮባንድ ዕቃ ተያዘ", "ጉምሩክ በቁጥጥር ስር አዋለ",
+           "ቦሌ አየር ማረፊያ አደንዛዥ ዕፅ", "ሀሺሽ ተያዘ", "የዝሆን ጥርስ ተያዘ", "ህገ ወጥ የጦር መሳሪያ ተያዘ", "ሲጋራ ኮንትሮባንድ ተያዘ"]
+      # Icelandic
+      is: ["lagði hald á kókaín", "lagði hald á fíkniefni", "fíkniefni haldlögð tollgæslan", "kannabis haldlagt",
+           "amfetamín haldlagt", "fíkniefnasmygl Keflavík", "kókaín Seyðisfjörður", "fíkniefnaframleiðsla kannabisræktun",
+           "sígarettur smygl haldlagðar", "vopn haldlögð"]
+      # Mongolian (Cyrillic)
+      mn: ["мансууруулах бодис хураан авлаа", "мансууруулах бодис илрүүллээ", "кокаин хураалаа", "хар тамхи хураагдлаа",
+           "гааль мансууруулах бодис", "хилээр хууль бусаар нэвтрүүлэх мансууруулах", "гар буу хураан авлаа", "тамхи хууль бусаар нэвтрүүлсэн"]
+      # Norwegian ("beslag" = seizure)
+      "no": ["kokain beslag", "tok i beslag kokain", "narkotika beslag tollvesenet", "hasj beslag", "amfetamin beslag",
+           "heroin beslag", "narkotika beslaglagt havn", "narkotikalaboratorium avdekket", "kjemikalier beslag toll",
+           "sigaretter beslag toll", "elfenben beslag", "våpen beslag smugling", "stjålne biler beslag"]
+      # Slovak
+      sk: ["zaistili kokaín", "zaistili drogy", "colníci zaistili drogy", "heroín zaistili", "marihuana zaistili",
+           "pervitín zaistili", "varňa drog laboratórium", "cigarety zaistili colnici", "slonovina zaistili",
+           "zbrane zaistili pašovanie", "ukradnuté autá zaistili", "kultúrne pamiatky pašovanie"]
+      # Swedish ("beslag" = seizure, "tullen" = customs)
+      sv: ["kokain beslag", "beslagtog kokain", "narkotika beslag tullen", "hasch beslag", "amfetamin beslag",
+           "heroin beslag", "narkotikafynd hamn Göteborg", "narkotikalaboratorium avslöjat", "kemikalier beslag tullen",
+           "cigaretter beslag tullen", "elfenben beslag", "vapen beslag smuggling", "stulna bilar beslag"]
+
+  gdelt:                       # global news index; free, no key. Set enabled: false to skip.
+    enabled: true
+    queries:
+      en: ['(cocaine OR heroin OR methamphetamine OR cannabis OR captagon OR fentanyl) (seized OR seizure OR intercepted)',
+           '(precursor chemicals OR clandestine lab) (seized OR seizure)',
+           '("hazardous chemicals" OR "toxic chemicals" OR "illegal pesticides" OR refrigerants OR "ozone-depleting" OR "ammonium nitrate" OR "hazardous waste") (seized OR seizure OR smuggling)',
+           '(mercury) (smuggling OR seized) (mining OR customs)',
+           '(stolen vehicles OR stolen cars) (seized OR recovered OR smuggling)',
+           '("CITES timber" OR "protected timber" OR rosewood OR "red sanders" OR kosso OR mukula) (seized OR seizure)',
+           '(ivory OR "rhino horn" OR pangolin OR "wildlife trafficking") (seized OR seizure OR smuggling)',
+           '("CITES" OR "protected species" OR "shark fins" OR "glass eels") (seized OR seizure)',
+           '(illegal firearms OR weapons cache OR ammunition OR arms trafficking) (seized OR seizure)',
+           '(antiquities OR "cultural property" OR "looted artefacts" OR "archaeological artifacts" OR "ancient coins" OR "stolen idols") (seized OR recovered OR smuggling)']
+      es: ['(cocaína OR heroína OR metanfetamina OR marihuana) (incautan OR decomisan OR incautación)',
+           '(químicos precursores OR laboratorio clandestino) (incautan OR decomisan)',
+           '(productos químicos OR plaguicidas OR mercurio OR refrigerantes) (incautan OR decomisan)',
+           '(vehículos robados) (decomisan OR recuperan)',
+           '(armas de fuego OR municiones OR arsenal) (incautan OR decomisan)',
+           '("piezas arqueológicas" OR "bienes culturales" OR antigüedades) (incautan OR recuperan OR tráfico)']
+      fr: ['(cocaïne OR héroïne OR cannabis OR captagon) (saisie OR saisi OR saisis)',
+           '(précurseurs chimiques) (saisie OR saisis)',
+           '(véhicules volés) (saisie OR récupérés)',
+           '(armes a feu OR munitions) (saisie OR saisis)',
+           '("biens culturels" OR antiquités OR "objets archéologiques") (saisie OR trafic)']
+      pt: ['(cocaína OR heroína OR maconha) (apreensão OR apreendem OR apreendida)',
+           '(químicos precursores) (apreensão OR apreendem)',
+           '(veículos roubados) (apreensão OR recuperados)',
+           '(armas de fogo OR munições) (apreensão OR apreendem)']
+      ar: ['(كوكايين OR هيروين OR حشيش OR كبتاجون) (ضبط OR إحباط)',
+           '(مواد كيميائية OR مبيدات OR زئبق OR "نترات الأمونيوم" OR "غاز التبريد") (ضبط OR تهريب)',
+           '("قطع أثرية" OR "تهريب الآثار" OR "تماثيل أثرية") (ضبط OR تهريب)']
+      tr: ['(kokain OR eroin OR esrar OR uyuşturucu) ("ele geçirildi" OR yakalandı)',
+           '(kimyasal OR "tarım ilacı" OR "amonyum nitrat" OR "soğutucu gaz") ("ele geçirildi" OR kaçak)',
+           '("tarihi eser") ("ele geçirildi" OR kaçakçılığı)']
+      ru: ['(кокаин OR героин OR метамфетамин OR наркотики) (изъяли OR изъято OR задержали)',
+           '(химикаты OR фреон OR пестициды OR ртуть OR прекурсоры) (изъяли OR контрабанда)',
+           '("культурные ценности" OR "археологические предметы") (изъяли OR контрабанда)']
+      zh: ['(可卡因 OR 海洛因 OR 冰毒 OR 毒品) (缴获 OR 查获 OR 檢獲)',
+           '(危险化学品 OR 制冷剂 OR 农药 OR 易制毒化学品 OR 洋垃圾) (查获 OR 走私 OR 缴获)',
+           '(文物) (走私 OR 查获)']
+      hi: ['(कोकीन OR हेरोइन OR गांजा OR ड्रग्स) (जब्त OR बरामद)',
+           '(रसायन OR कीटनाशक OR "अमोनियम नाइट्रेट") (जब्त OR बरामद)']
+      vi: ['("ngà voi") (thu giữ OR bắt giữ OR buôn lậu)',
+           '("hóa chất" OR "thuốc bảo vệ thực vật" OR "gas lạnh" OR "thủy ngân") (thu giữ OR buôn lậu)']
+      nl: ['(cocaïne OR coke OR heroïne OR cannabis OR hennep OR xtc OR amfetamine OR methamfetamine) ("in beslag" OR onderschept OR drugsvangst)',
+           '(precursoren OR drugslab OR drugslaboratorium) ("in beslag" OR ontmanteld)',
+           '(chemicaliën OR bestrijdingsmiddelen OR kwik OR koelgas OR ammoniumnitraat OR "gevaarlijk afval") ("in beslag" OR gesmokkeld OR onderschept)',
+           '(ivoor OR neushoorn OR schubdier OR wildsmokkel OR CITES) ("in beslag" OR gesmokkeld)',
+           '(vuurwapens OR munitie OR wapensmokkel) ("in beslag" OR onderschept)',
+           '("gestolen voertuigen") (onderschept OR teruggevonden OR "in beslag")',
+           '(archeologische OR erfgoed OR "gestolen kunstwerken") ("in beslag" OR gesmokkeld OR teruggevonden)']
+      de: ['(Kokain OR Heroin OR Cannabis OR Suchtgift OR Rauschgift OR Haschisch OR Methamphetamin) (sichergestellt OR beschlagnahmt)',
+           '(Chemikalien OR Pestizide OR Drogenlabor) (sichergestellt OR beschlagnahmt)']
+      da: ['(kokain OR heroin OR hash OR amfetamin OR narkotika) (beslaglagt OR beslaglagde OR beslaglægger)']
+      et: ['(kokaiin OR heroiin OR kanep OR amfetamiin OR narkootikumid) (konfiskeeriti OR tabati OR avastati)']
+      am: ['(ኮኬይን OR ሄሮይን OR ሀሺሽ OR "አደንዛዥ ዕፅ") (ተያዘ OR ተያዙ)']
+      is: ['(kókaín OR fíkniefni OR kannabis OR amfetamín) (haldlagt OR haldlögð OR "lagði hald")']
+      mn: ['(кокаин OR героин OR мансууруулах) (хураан OR илрүүллээ OR хураагдлаа)']
+      "no": ['(kokain OR heroin OR hasj OR amfetamin OR narkotika) (beslag OR beslaglagt OR "tok i beslag")']
+      sk: ['(kokaín OR heroín OR marihuana OR pervitín OR drogy) (zaistili OR zaistené OR zadržali)']
+      sv: ['(kokain OR heroin OR hasch OR amfetamin OR narkotika) (beslag OR beslagtog OR beslagtagit)']
+
+  # Official newsrooms. Google News is searched once per website below (site:...), so official press
+  # releases are picked up even when no newspaper reports them. Add or remove websites freely.
+  official_sites:
+    enabled: true
+    query: "site:{site} (seized OR seizure OR seizes OR intercepted OR incautan OR decomisan OR saisie OR apreensao OR \"in beslag genomen\" OR onderschept OR inbeslagname OR sichergestellt OR beschlagnahmt OR beslaglagt OR beslag OR zaistili OR konfiskeeriti OR haldlagt OR \"lagði hald\") (cocaine OR heroin OR methamphetamine OR cannabis OR fentanyl OR captagon OR drugs OR cocaina OR droga OR cocaine OR drogue OR \"precursor chemicals\" OR \"hazardous chemicals\" OR \"toxic chemicals\" OR pesticides OR refrigerants OR mercury OR \"ammonium nitrate\" OR \"hazardous waste\" OR \"stolen vehicles\" OR \"protected timber\" OR antiquities OR \"cultural property\" OR \"archaeological artefacts\" OR rosewood OR \"illegal firearms\" OR \"weapons cache\" OR ammunition OR \"arms trafficking\" OR ivory OR \"rhino horn\" OR pangolin OR \"wildlife trafficking\" OR CITES OR hasj OR hennep OR xtc OR kwik OR ivoor OR vuurwapens OR munitie OR cocaïne OR heroïne OR Suchtgift OR Kokain OR kokaín OR narkotika OR kokaiin OR fíkniefni OR hasch OR hasj)"
+    # `lang` is the language that site actually publishes in - it decides whether the
+    # headline gets auto-translated to English, so it must be the SITE's language, not English,
+    # even though the search itself always goes through the English Google News edition.
+    sites:
+      - {site: cbp.gov,               lang: en}  # US Customs and Border Protection
+      - {site: dea.gov,               lang: en}  # US Drug Enforcement Administration
+      - {site: justice.gov,           lang: en}  # US Department of Justice / US attorneys
+      - {site: ice.gov,                lang: en}  # US Homeland Security Investigations
+      - {site: uscg.mil,              lang: en}  # US Coast Guard
+      - {site: gov.uk,                lang: en}  # UK National Crime Agency, Border Force, HMRC
+      - {site: afp.gov.au,            lang: en}  # Australian Federal Police
+      - {site: abf.gov.au,            lang: en}  # Australian Border Force
+      - {site: europol.europa.eu,     lang: en}  # Europol
+      - {site: unodc.org,             lang: en}  # UN Office on Drugs and Crime
+      - {site: wcoomd.org,            lang: en}  # World Customs Organization
+      - {site: interpol.int,          lang: en}  # Interpol
+      - {site: sars.gov.za,           lang: en}  # South African Revenue Service (customs)
+      - {site: saps.gov.za,           lang: en}  # South African Police Service
+      - {site: ndlea.gov.ng,          lang: en}  # Nigeria drug law enforcement agency
+      - {site: nacoc.gov.gh,          lang: en}  # Ghana Narcotics Control Commission
+      - {site: pib.gov.in,            lang: en}  # India government press releases (customs, DRI, NCB)
+      - {site: pdea.gov.ph,           lang: en}  # Philippine Drug Enforcement Agency
+      - {site: cnb.gov.sg,            lang: en}  # Singapore Central Narcotics Bureau
+      - {site: douane.gouv.fr,        lang: fr}  # French customs
+      - {site: zoll.de,               lang: de}  # German customs
+      - {site: politie.nl,            lang: nl}  # Dutch national police
+      - {site: om.nl,                 lang: nl}  # Dutch Public Prosecution Service (Openbaar Ministerie)
+      - {site: fiod.nl,               lang: nl}  # Dutch fiscal investigation service (FIOD)
+      - {site: kmar.nl,               lang: nl}  # Royal Netherlands Marechaussee (Schiphol, borders)
+      - {site: belastingdienst.nl,    lang: nl}  # Dutch Tax and Customs Administration
+      - {site: politie.be,            lang: nl}  # Belgian federal police (Dutch-language pages)
+      - {site: financien.belgium.be,  lang: nl}  # Belgian customs (FPS Finance)
+      - {site: federaalparket.be,     lang: nl}  # Belgian federal prosecutor
+      # Austria, Nordic and Baltic countries, Slovakia, Ethiopia, Mongolia (lang = the language of that site)
+      - {site: bmi.gv.at,             lang: de}  # Austrian interior ministry (police press releases, Suchtgift)
+      - {site: bmf.gv.at,             lang: de}  # Austrian finance ministry (customs)
+      - {site: politi.dk,             lang: da}  # Danish police
+      - {site: skat.dk,               lang: da}  # Danish tax and customs
+      - {site: politsei.ee,           lang: et}  # Estonian police and border guard
+      - {site: emta.ee,               lang: et}  # Estonian tax and customs board
+      - {site: customs.gov.mn,        lang: mn}  # Mongolian customs
+      - {site: tollur.is,             lang: is}  # Icelandic customs
+      - {site: logreglan.is,          lang: is}  # Icelandic police
+      - {site: toll.no,               lang: "no"}  # Norwegian customs (Tolletaten)
+      - {site: politiet.no,           lang: "no"}  # Norwegian police
+      - {site: financnasprava.sk,     lang: sk}  # Slovak financial administration (customs)
+      - {site: minv.sk,               lang: sk}  # Slovak interior ministry (police)
+      - {site: tullverket.se,         lang: sv}  # Swedish customs
+      - {site: polisen.se,            lang: sv}  # Swedish police
+      - {site: ecc.gov.et,            lang: am}  # Ethiopian customs commission
+      - {site: guardiacivil.es,       lang: es}  # Spanish Guardia Civil
+      - {site: agenciatributaria.es,  lang: es}  # Spanish tax and customs agency
+      - {site: policia.gov.co,        lang: es}  # Colombian national police
+      - {site: aduana.gob.ec,         lang: es}  # Ecuador customs
+      - {site: gob.pe,                lang: es}  # Peru government (police, customs)
+      - {site: gob.mx,                lang: es}  # Mexican government (navy, army, customs)
+      - {site: gov.br,                lang: pt}  # Brazil government (federal police, Receita Federal)
+
+  # Extra RSS feeds. Each shows up in the run log as "RSS <name>: N items"; N = 0 means the address is wrong or blocked.
+  rss_feeds:
+    - {name: "Hong Kong government press releases (includes Customs)", url: "https://www.info.gov.hk/gia/rss/general_en.xml", lang: en, country: "Hong Kong"}
+    # Not checked yet - the log will tell you whether they work:
+    - {name: "UK National Crime Agency", url: "https://www.gov.uk/search/news-and-communications.atom?organisations%5B%5D=national-crime-agency", lang: en, country: "United Kingdom"}
+    - {name: "UK Border Force", url: "https://www.gov.uk/search/news-and-communications.atom?organisations%5B%5D=border-force", lang: en, country: "United Kingdom"}
+    - {name: "NDLEA Nigeria", url: "https://ndlea.gov.ng/feed/", lang: en, country: "Nigeria"}
+
+# ---------------------------------------------------------------------
+#  WEEKLY BULLETIN  (one page: new corridors, unusual events, how drugs were hidden)
+# ---------------------------------------------------------------------
+bulletin:
+  enabled: true
+  weekday: 0                    # 0 = Monday: the first run of that day e-mails it (if e-mail is set up)
+  dashboard_url: "https://glretief-ux.github.io/Seizure-watch-ver-2/"
+  # The page is always published as bulletin.html. To also e-mail it, add these GitHub secrets
+  # (Settings > Secrets and variables > Actions): SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, BULLETIN_TO
+  # (comma-separated recipients) and optionally BULLETIN_FROM. They are kept out of this public repository.
+
+# ---------------------------------------------------------------------
+#  RISK MODEL  (event score 0-100; all numbers are yours to tune)
+# ---------------------------------------------------------------------
+risk:
+  # The score is built from FIVE dimensions with their own caps, so no single factor (and
+  # in particular seizure weight) can decide the result. Max total = 100.
+  points:
+    method:                          # max 30 - how it was smuggled
+      advanced_concealment: 15       # false compartments, impregnation, hull attachments...
+      concealed_in_legit_cargo: 10   # hidden inside food, goods or a cover load
+      container_cargo: 5             # seized from / travelling in a shipping container
+      false_declaration: 8           # declared as other goods, forged papers, or no permit/licence (cargo risk list s.3-4)
+    network:                         # max 30 - who was behind it
+      insider_indicator: 15          # port / airport / customs staff involvement, rip-on/rip-off
+      organized_network: 10          # article mentions cartel / organised crime network
+      polydrug: 5                    # more than one drug type in the same consignment
+      front_company: 8               # shell / front / newly registered / first-time company named (list s.1)
+      repeat_entity: 10              # same vessel or container already in another seizure (list s.8)
+      intel_tip: 5                   # intelligence-led, tip-off, partner-agency alert or risk-profiling hit (list s.8)
+    route:                           # max 20 - where it moved
+      multi_country_route: 15        # 3+ countries in the route, or a named transit country
+      emerging_corridor: 5           # origin->destination pair not seen before in the recent past
+      transshipment: 5               # transhipment, re-export, free zone or bonded warehouse named (list s.2)
+      route_change: 5                # diversion, change of port / vessel / route after departure (list s.2)
+    scale:                           # max 10 - deliberately small: weight alone must never decide
+      quantity_outlier: 10           # very large for its type (thresholds below)
+    commodity:                       # max 10 - how harmful the goods are (tiers below)
+      1: 10
+      2: 5
+      3: 0
+  caps:                              # each dimension is clipped here, however many indicators fire
+    method: 30
+    network: 30
+    route: 20
+  # WATCHLIST: a hit forces the event to High whatever its score (list s.8: "treat as High regardless").
+  # This repository is public, so only put names here that you are happy to publish.
+  watchlist:
+    vessels: []                      # e.g. ["MV EXAMPLE"]
+    containers: []                   # e.g. ["MSKU1234567"]
+    terms: []                        # words or phrases searched in the headline and cover cargo
+  commodity_tiers:
+    default: 2                       # anything not listed below
+    categories: {Tobacco: 3, Precursor chemical: 2, Hazardous chemical: 2, Cultural heritage: 2, Stolen vehicle: 2, CITES protected timber: 2}
+    items:                           # tier 1 = highest harm, tier 3 = lowest
+      1: [Cocaine, Heroin/Opium, Methamphetamine, NSA, Explosives/grenades, Explosive precursors, Firearms, Elephant ivory, Rhino horn, Pangolin, Big cat parts]
+      3: [Cigarettes]
+  # An event is only High if it scores >= high AND at least this many of method / network / route
+  # show something (Medium: at least 1). Scale and commodity alone can never lift an event.
+  min_dimensions_high: 2
+  min_dimensions_medium: 1
+  bands: {high: 50, medium: 25}    # score >= high -> High ; >= medium -> Medium ; else Low
+  quantity_thresholds_kg:          # weight above which a seizure counts as "large"
+    Cocaine: 500
+    Cannabis: 2000
+    Heroin/Opium: 100
+    Methamphetamine: 100
+    NSA: 100
+    Cigarettes: 5000
+    # Precursor chemicals (kg) - thresholds reflect how much of each is needed
+    # to matter for a lab, not drug-equivalent weight
+    Acetic anhydride: 2000
+    Ephedrine/Pseudoephedrine: 50
+    P2P/BMK/PMK: 50
+    Potassium permanganate: 1000
+    Sodium cyanide: 500
+    Red phosphorus: 200
+    Acetone/solvents: 2000
+    # Hazardous chemicals (kg) - judgement values, edit freely
+    Ozone-depleting refrigerants: 1000
+    Pesticides/agrochemicals: 5000
+    Mercury: 100
+    Explosive precursors: 500
+    Hazardous/toxic waste: 20000
+    Industrial/toxic chemicals: 5000
+    # CITES-protected timber (kg)
+    Rosewood (Dalbergia): 5000
+    Mukula: 5000
+    Ebony: 2000
+    Agarwood: 50
+    Ramin: 5000
+    Afrormosia: 5000
+    Mahogany: 5000
+    Kosso (Pterocarpus erinaceus): 5000
+    Red sandalwood (Pterocarpus santalinus): 1000
+    Spanish cedar (Cedrela): 5000
+    Afzelia (doussie): 5000
+    Lignum vitae (Guaiacum): 2000
+    # CITES elephant ivory and other protected fauna (kg). Ivory: 500 kg is the
+    # usual "large-scale seizure" cut-off; the rest are judgement values - edit freely.
+    Elephant ivory: 500
+    Rhino horn: 5
+    Pangolin: 100
+    Big cat parts: 5
+    Sharks, rays and marine species: 500
+    Glass eels: 50
+    Bear parts: 20
+    Bushmeat: 500
+    # Explosives/grenades (kg) - weight-based reports (e.g. TNT, dynamite)
+    Explosives/grenades: 50
+    default: 200
+  unit_thresholds:                 # for pills / sticks when no weight is given
+    pills: 500000
+    cigarettes: 2000000
+    packs: 100000
+    vehicles: 10                   # 10+ stolen vehicles in one report is a large outlier
+    tusks: 10                      # CITES ivory counted in tusks
+    horns: 5                       # rhino horns
+    skins: 20                      # big-cat or reptile skins
+    animals: 100                   # live or dead protected animals in one report
+    pieces: 100                    # worked ivory / wildlife pieces
+    firearms: 20                   # 20+ firearms in one report is a large outlier
+    rounds: 10000                  # 10,000+ rounds of ammunition in one report is a large outlier
+  percentile_min_events: 30        # once a drug has this many events, also flag its own top 5%
+
+analysis:
+  trend_window_days: 30            # "recent" vs "prior" window for corridor / hotspot trends
+  min_history_days: 42             # below this, NEW-corridor and spike alerts stay quiet (not enough history)
+  emerging_days: 60                # a corridor first seen within this many days counts as emerging
+  spike_min_events: 3              # minimum events in the last 7 days to raise a spike alert
+  spike_z: 2.0                     # how far above the 8-week average counts as a spike
+
+# ---------------------------------------------------------------------
+#  LINKS BETWEEN SEPARATE SEIZURES (repeat vessels / containers / cargo, precursor-to-drug chain)
+# ---------------------------------------------------------------------
+links:
+  recent_days: 30                 # a repeat link is only shown while one of its seizures is this recent
+  min_events:                     # separate seizures needed before a repeat is shown
+    Vessel: 2
+    Container number: 2
+    Shipping line: 4              # big carriers are in many seizures by chance: shown in the table, never alerted
+    Loading place: 4
+    Cover cargo on corridor: 3
+  chain_days: 90                  # look back this far for precursor seizures and clandestine labs
+  chain_gap_days: 60              # a synthetic-drug seizure in the same country this close in time counts as linked
